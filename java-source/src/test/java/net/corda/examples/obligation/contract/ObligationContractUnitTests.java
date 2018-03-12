@@ -13,16 +13,13 @@ import java.util.List;
 
 import static net.corda.finance.Currencies.DOLLARS;
 import static net.corda.finance.Currencies.POUNDS;
-import static net.corda.testing.node.MockServicesKt.makeTestIdentityService;
 
 /**
  * A base class to reduce the boilerplate when writing obligation contract tests.
  */
 abstract class ObligationContractUnitTests {
     protected MockServices ledgerServices = new MockServices(
-            ImmutableList.of("net.corda.examples.obligation", "net.corda.testing.contracts"),
-            makeTestIdentityService(),
-            new TestIdentity(new CordaX500Name("TestIdentity", "", "GB")));
+            ImmutableList.of("net.corda.examples.obligation", "net.corda.testing.contracts"));
     protected TestIdentity alice = new TestIdentity(new CordaX500Name("Alice", "", "GB"));
     protected TestIdentity bob = new TestIdentity(new CordaX500Name("Bob", "", "GB"));
     protected TestIdentity charlie = new TestIdentity(new CordaX500Name("Bob", "", "GB"));

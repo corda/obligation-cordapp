@@ -6,7 +6,7 @@ import net.corda.examples.obligation.Obligation;
 import org.junit.Test;
 
 import static net.corda.finance.Currencies.POUNDS;
-import static net.corda.testing.core.TestUtils.chooseIdentity;
+import static net.corda.testing.internal.InternalTestUtilsKt.chooseIdentity;
 import static org.junit.Assert.assertEquals;
 
 public class IssueObligationTests extends ObligationTests {

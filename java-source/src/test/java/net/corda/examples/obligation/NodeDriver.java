@@ -14,17 +14,17 @@ public class NodeDriver {
     public static void main(String[] args) {
         final User user = new User("user1", "test", ImmutableSet.of("ALL"));
 
-        driver(new DriverParameters().setIsDebug(true).setStartNodesInProcess(true).setWaitForAllNodesToFinish(true), dsl -> {
+        driver(new DriverParameters().withIsDebug(true).withStartNodesInProcess(true).withWaitForAllNodesToFinish(true), dsl -> {
             try {
                 NodeHandle nodeA = dsl.startNode(new NodeParameters()
-                        .setProvidedName(new CordaX500Name("PartyA", "London", "GB"))
-                        .setRpcUsers(ImmutableList.of(user))).get();
+                        .withProvidedName(new CordaX500Name("PartyA", "London", "GB"))
+                        .withRpcUsers(ImmutableList.of(user))).get();
                 NodeHandle nodeB = dsl.startNode(new NodeParameters()
-                        .setProvidedName(new CordaX500Name("PartyB", "New York", "US"))
-                        .setRpcUsers(ImmutableList.of(user))).get();
+                        .withProvidedName(new CordaX500Name("PartyB", "New York", "US"))
+                        .withRpcUsers(ImmutableList.of(user))).get();
                 NodeHandle nodeC = dsl.startNode(new NodeParameters()
-                        .setProvidedName(new CordaX500Name("PartyC", "Paris", "FR"))
-                        .setRpcUsers(ImmutableList.of(user))).get();
+                        .withProvidedName(new CordaX500Name("PartyC", "Paris", "FR"))
+                        .withRpcUsers(ImmutableList.of(user))).get();
 
                 dsl.startWebserver(nodeA);
                 dsl.startWebserver(nodeB);

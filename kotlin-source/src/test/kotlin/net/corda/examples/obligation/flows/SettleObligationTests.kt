@@ -6,7 +6,7 @@ import net.corda.core.flows.FlowException
 import net.corda.examples.obligation.Obligation
 import net.corda.finance.POUNDS
 import net.corda.finance.contracts.asset.Cash
-import net.corda.testing.core.chooseIdentity
+import net.corda.testing.internal.chooseIdentity
 import net.corda.testing.node.StartedMockNode
 
 class SettleObligationTests : ObligationTests() {

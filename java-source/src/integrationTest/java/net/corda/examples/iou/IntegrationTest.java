@@ -23,12 +23,12 @@ public class IntegrationTest {
         final CordaX500Name nodeAName = new CordaX500Name("NodeA", "", "GB");
         final CordaX500Name nodeBName = new CordaX500Name("NodeB", "", "US");
 
-        driver(new DriverParameters().setIsDebug(true).setStartNodesInProcess(true), dsl -> {
+        driver(new DriverParameters().withIsDebug(true).withStartNodesInProcess(true), dsl -> {
             // This starts three nodes simultaneously with startNode, which returns a future that completes when the node
             // has completed startup. Then these are all resolved with getOrThrow which returns the NodeHandle list.
             List<CordaFuture<NodeHandle>> handles = ImmutableList.of(
-                    dsl.startNode(new NodeParameters().setProvidedName(nodeAName).setRpcUsers(ImmutableList.of(user))),
-                    dsl.startNode(new NodeParameters().setProvidedName(nodeBName).setRpcUsers(ImmutableList.of(user)))
+                    dsl.startNode(new NodeParameters().withProvidedName(nodeAName).withRpcUsers(ImmutableList.of(user))),
+                    dsl.startNode(new NodeParameters().withProvidedName(nodeBName).withRpcUsers(ImmutableList.of(user)))
             );
 
             try {

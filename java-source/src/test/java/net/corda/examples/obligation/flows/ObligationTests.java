@@ -13,12 +13,10 @@ import net.corda.testing.node.StartedMockNode;
 import org.junit.After;
 import org.junit.Before;
 
-import static net.corda.testing.node.NodeTestUtils.startFlow;
-
 import java.util.Currency;
 import java.util.concurrent.ExecutionException;
 
-import static net.corda.testing.core.TestUtils.chooseIdentity;
+import static net.corda.testing.internal.InternalTestUtilsKt.chooseIdentity;
 
 /**
  * A base class to reduce the boilerplate when writing obligation flow tests.
@@ -33,7 +31,7 @@ abstract class ObligationTests {
     public void setup() {
         network = new MockNetwork(
                 ImmutableList.of("net.corda.examples.obligation", "net.corda.finance"),
-                new MockNetworkParameters().setThreadPerNode(true));
+                new MockNetworkParameters().withThreadPerNode(true));
 
         a = network.createPartyNode(null);
         b = network.createPartyNode(null);
@@ -56,7 +54,7 @@ abstract class ObligationTests {
                                              Boolean anonymous) throws InterruptedException, ExecutionException {
         Party lenderIdentity = chooseIdentity(lender.getInfo());
         IssueObligation.Initiator flow = new IssueObligation.Initiator(amount, lenderIdentity, anonymous);
-        return startFlow(borrower.getServices(), flow).get();
+        return borrower.startFlow(flow).get();
     }
 
     protected SignedTransaction transferObligation(UniqueIdentifier linearId,
@@ -65,7 +63,7 @@ abstract class ObligationTests {
                                                 Boolean anonymous) throws InterruptedException, ExecutionException {
         Party newLenderIdentity = chooseIdentity(newLender.getInfo());
         TransferObligation.Initiator flow = new TransferObligation.Initiator(linearId, newLenderIdentity, anonymous);
-        return startFlow(lender.getServices(), flow).get();
+        return lender.startFlow(flow).get();
     }
 
     protected SignedTransaction settleObligation(UniqueIdentifier linearId,
@@ -73,7 +71,7 @@ abstract class ObligationTests {
                                               Amount<Currency> amount,
                                               Boolean anonymous) throws InterruptedException, ExecutionException {
         SettleObligation.Initiator flow = new SettleObligation.Initiator(linearId, amount, anonymous);
-        return startFlow(borrower.getServices(), flow).get();
+        return borrower.startFlow(flow).get();
     }
 
     protected SignedTransaction selfIssueCash(StartedMockNode party,
@@ -82,6 +80,6 @@ abstract class ObligationTests {
         OpaqueBytes issueRef = OpaqueBytes.of(new Byte(""));
         CashIssueFlow.IssueRequest issueRequest = new CashIssueFlow.IssueRequest(amount, issueRef, notary);
         CashIssueFlow flow = new CashIssueFlow(issueRequest);
-        return startFlow(party.getServices(), flow).get().getStx();
+        return party.startFlow(flow).get().getStx();
     }
 }

@@ -5,10 +5,9 @@ import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.getOrThrow
 import net.corda.finance.flows.CashIssueFlow
-import net.corda.testing.core.chooseIdentity
+import net.corda.testing.internal.chooseIdentity
 import net.corda.testing.node.MockNetwork
 import net.corda.testing.node.StartedMockNode
-import net.corda.testing.node.startFlow
 import org.junit.After
 import org.junit.Before
 import java.util.*
@@ -49,7 +48,7 @@ abstract class ObligationTests {
     ): net.corda.core.transactions.SignedTransaction {
         val lenderIdentity = lender.info.chooseIdentity()
         val flow = IssueObligation.Initiator(amount, lenderIdentity, anonymous)
-        return borrower.services.startFlow(flow).getOrThrow()
+        return borrower.startFlow(flow).getOrThrow()
     }
 
     protected fun transferObligation(linearId: UniqueIdentifier,
@@ -59,7 +58,7 @@ abstract class ObligationTests {
     ): net.corda.core.transactions.SignedTransaction {
         val newLenderIdentity = newLender.info.chooseIdentity()
         val flow = TransferObligation.Initiator(linearId, newLenderIdentity, anonymous)
-        return lender.services.startFlow(flow).getOrThrow()
+        return lender.startFlow(flow).getOrThrow()
     }
 
     protected fun settleObligation(linearId: UniqueIdentifier,
@@ -68,7 +67,7 @@ abstract class ObligationTests {
                                    anonymous: Boolean = true
     ): net.corda.core.transactions.SignedTransaction {
         val flow = SettleObligation.Initiator(linearId, amount, anonymous)
-        return borrower.services.startFlow(flow).getOrThrow()
+        return borrower.startFlow(flow).getOrThrow()
     }
 
     protected fun selfIssueCash(party: StartedMockNode,
@@ -78,6 +77,6 @@ abstract class ObligationTests {
         val issueRef = OpaqueBytes.of(0)
         val issueRequest = CashIssueFlow.IssueRequest(amount, issueRef, notary)
         val flow = CashIssueFlow(issueRequest)
-        return party.services.startFlow(flow).getOrThrow().stx
+        return party.startFlow(flow).getOrThrow().stx
     }
 }
