@@ -24,15 +24,15 @@ abstract class ObligationContractUnitTests {
     protected TestIdentity bob = new TestIdentity(new CordaX500Name("Bob", "", "GB"));
     protected TestIdentity charlie = new TestIdentity(new CordaX500Name("Bob", "", "GB"));
 
-    protected class DummyState implements ContractState {
-        @Override
-        public List<AbstractParty> getParticipants() {
-            return ImmutableList.of();
-        }
-    }
-
-    protected class DummyCommand implements CommandData {}
-
     protected Obligation oneDollarObligation = new Obligation(POUNDS(1), alice.getParty(), bob.getParty());
     protected Obligation tenDollarObligation = new Obligation(DOLLARS(10), alice.getParty(), bob.getParty());
 }
+
+class DummyState implements ContractState {
+    @Override
+    public List<AbstractParty> getParticipants() {
+        return ImmutableList.of();
+    }
+}
+
+class DummyCommand implements CommandData {}

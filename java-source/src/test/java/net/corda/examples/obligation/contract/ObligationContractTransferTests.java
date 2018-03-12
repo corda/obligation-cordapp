@@ -20,7 +20,7 @@ public class ObligationContractTransferTests extends ObligationContractUnitTests
             ledger.transaction(tx -> {
                 tx.output(OBLIGATION_CONTRACT_ID, oneDollarObligation);
                 tx.command(ImmutableList.of(alice.getPublicKey(), bob.getPublicKey()), new DummyCommand());
-                tx.failsWith("Required net.corda.examples.obligation.new ObligationContract.Commands tx.command");
+                tx.failsWith("Required net.corda.examples.obligation.ObligationContract.Commands command");
                 return null;
             });
             ledger.transaction(tx -> {
@@ -60,7 +60,7 @@ public class ObligationContractTransferTests extends ObligationContractUnitTests
             ledger.transaction(tx -> {
                 tx.input(OBLIGATION_CONTRACT_ID, oneDollarObligation);
                 tx.command(ImmutableList.of(alice.getPublicKey(), bob.getPublicKey(), charlie.getPublicKey()), new ObligationContract.Commands.Transfer());
-                tx.failsWith("An obligation transfer transaction should only create one tx.output state.");
+                tx.failsWith("An obligation transfer transaction should only create one output state.");
                 return null;
             });
             ledger.transaction(tx -> {
@@ -68,7 +68,7 @@ public class ObligationContractTransferTests extends ObligationContractUnitTests
                 tx.output(OBLIGATION_CONTRACT_ID, oneDollarObligation.withNewLender(charlie.getParty()));
                 tx.output(OBLIGATION_CONTRACT_ID, new DummyState());
                 tx.command(ImmutableList.of(alice.getPublicKey(), bob.getPublicKey(), charlie.getPublicKey()), new ObligationContract.Commands.Transfer());
-                tx.failsWith("An obligation transfer transaction should only create one tx.output state.");
+                tx.failsWith("An obligation transfer transaction should only create one output state.");
                 return null;
             });
             ledger.transaction(tx -> {
