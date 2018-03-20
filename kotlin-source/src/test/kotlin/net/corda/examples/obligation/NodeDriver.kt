@@ -7,7 +7,7 @@ import net.corda.testing.driver.driver
 import net.corda.testing.node.User
 
 fun main(args: Array<String>) {
-    val user = User("user1", "test", permissions = setOf())
+    val user = User("user1", "test", permissions = setOf("ALL"))
 
     driver(DriverParameters(isDebug = true, startNodesInProcess = true, waitForAllNodesToFinish = true)) {
         val (nodeA, nodeB, nodeC) = listOf(
