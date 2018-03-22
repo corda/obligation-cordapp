@@ -77,7 +77,7 @@ abstract class ObligationTests {
     protected SignedTransaction selfIssueCash(StartedMockNode party,
                                               Amount<Currency> amount) throws InterruptedException, ExecutionException {
         Party notary = party.getServices().getNetworkMapCache().getNotaryIdentities().get(0);
-        OpaqueBytes issueRef = OpaqueBytes.of(new Byte(""));
+        OpaqueBytes issueRef = OpaqueBytes.of("0".getBytes());
         CashIssueFlow.IssueRequest issueRequest = new CashIssueFlow.IssueRequest(amount, issueRef, notary);
         CashIssueFlow flow = new CashIssueFlow(issueRequest);
         return party.startFlow(flow).get().getStx();
