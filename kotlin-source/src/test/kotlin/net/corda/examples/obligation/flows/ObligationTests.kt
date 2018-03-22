@@ -23,7 +23,7 @@ abstract class ObligationTests {
 
     @Before
     fun setup() {
-        network = MockNetwork(listOf("net.corda.examples.obligation", "net.corda.finance"), threadPerNode = true)
+        network = MockNetwork(listOf("net.corda.examples.obligation", "net.corda.finance", "net.corda.finance.schemas"), threadPerNode = true)
 
         a = network.createNode()
         b = network.createNode()
