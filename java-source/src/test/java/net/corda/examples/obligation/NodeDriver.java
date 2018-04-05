@@ -14,7 +14,10 @@ public class NodeDriver {
     public static void main(String[] args) {
         final User user = new User("user1", "test", ImmutableSet.of("ALL"));
 
-        driver(new DriverParameters().withIsDebug(true).withStartNodesInProcess(true).withWaitForAllNodesToFinish(true), dsl -> {
+        driver(new DriverParameters()
+                .withExtraCordappPackagesToScan(ImmutableList.of("net.corda.finance.contracts.asset", "net.corda.finance.schemas"))
+                .withIsDebug(true).withStartNodesInProcess(true)
+                .withWaitForAllNodesToFinish(true), dsl -> {
             try {
                 NodeHandle nodeA = dsl.startNode(new NodeParameters()
                         .withProvidedName(new CordaX500Name("PartyA", "London", "GB"))

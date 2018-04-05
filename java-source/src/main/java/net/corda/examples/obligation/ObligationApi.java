@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import net.corda.core.contracts.Amount;
 import net.corda.core.contracts.StateAndRef;
 import net.corda.core.contracts.UniqueIdentifier;
+import net.corda.core.identity.AbstractParty;
 import net.corda.core.identity.Party;
 import net.corda.core.messaging.CordaRPCOps;
 import net.corda.core.messaging.FlowHandle;
@@ -22,10 +23,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.Currency;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.stream.Collectors.*;
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
@@ -53,10 +51,9 @@ public class ObligationApi {
     @Path("peers")
     @Produces(MediaType.APPLICATION_JSON)
     public Map<String, List<String>> peers() {
-        // TODO: Not filtering me out properly.
         return ImmutableMap.of("peers", rpcOps.networkMapSnapshot()
                 .stream()
-                .filter(nodeInfo -> nodeInfo.getLegalIdentities().get(0) != myIdentity)
+                .filter(nodeInfo -> !nodeInfo.getLegalIdentities().get(0).equals(myIdentity))
                 .map(it -> it.getLegalIdentities().get(0).getName().getOrganisation())
                 .collect(toList()));
     }
@@ -69,16 +66,37 @@ public class ObligationApi {
                 .stream()
                 .filter(it -> it.getState().getData().getLender() != myIdentity)
                 .map(it -> it.getState().getData().getAmount())
-                .collect(groupingBy(
-                        Amount::getToken, summingLong(Amount::getQuantity)
-                ));
+                .collect(groupingBy(Amount::getToken, summingLong(Amount::getQuantity)));
     }
 
     @GET
     @Path("obligations")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<StateAndRef<Obligation>> obligations() {
-        return rpcOps.vaultQuery(Obligation.class).getStates();
+    public List<Obligation> obligations() {
+        List<StateAndRef<Obligation>> statesAndRefs = rpcOps.vaultQuery(Obligation.class).getStates();
+
+        return statesAndRefs.stream()
+                .map(stateAndRef -> stateAndRef.getState().getData())
+                .map(state -> {
+                    // We map the anonymous lender and borrower to well-known identities if possible.
+                    AbstractParty possiblyWellKnownLender = rpcOps.wellKnownPartyFromAnonymous(state.getLender());
+                    if (possiblyWellKnownLender == null) {
+                        possiblyWellKnownLender = state.getLender();
+                    }
+
+                    AbstractParty possiblyWellKnownBorrower = rpcOps.wellKnownPartyFromAnonymous(state.getBorrower());
+                    if (possiblyWellKnownBorrower == null) {
+                        possiblyWellKnownBorrower = state.getBorrower();
+                    }
+
+                    return new Obligation(
+                            state.getAmount(),
+                            possiblyWellKnownLender,
+                            possiblyWellKnownBorrower,
+                            state.getPaid(),
+                            state.getLinearId());
+                })
+                .collect(toList());
     }
 
     @GET
