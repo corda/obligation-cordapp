@@ -76,7 +76,7 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
     demoApp.refresh = () => {
         // Update the list of IOUs.
         $http.get(apiBaseURL + "obligations").then((response) => demoApp.ious =
-            Object.keys(response.data).map((key) => response.data[key].state.data));
+            Object.keys(response.data).map((key) => response.data[key]));
 
         // Update the cash balances.
         $http.get(apiBaseURL + "cash-balances").then((response) => demoApp.cashBalances =

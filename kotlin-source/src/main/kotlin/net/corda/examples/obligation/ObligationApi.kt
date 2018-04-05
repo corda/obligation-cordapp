@@ -50,7 +50,22 @@ class ObligationApi(val rpcOps: CordaRPCOps) {
     @GET
     @Path("obligations")
     @Produces(MediaType.APPLICATION_JSON)
-    fun obligations() = rpcOps.vaultQuery(Obligation::class.java).states
+    fun obligations(): List<Obligation> {
+        val statesAndRefs = rpcOps.vaultQuery(Obligation::class.java).states
+        return statesAndRefs
+                .map { stateAndRef -> stateAndRef.state.data }
+                .map { state ->
+                    // We map the anonymous lender and borrower to well-known identities if possible.
+                    val possiblyWellKnownLender = rpcOps.wellKnownPartyFromAnonymous(state.lender) ?: state.lender
+                    val possiblyWellKnownBorrower = rpcOps.wellKnownPartyFromAnonymous(state.borrower) ?: state.borrower
+
+                    Obligation(state.amount,
+                            possiblyWellKnownLender,
+                            possiblyWellKnownBorrower,
+                            state.paid,
+                            state.linearId)
+                }
+    }
 
     @GET
     @Path("cash")
