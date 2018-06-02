@@ -27,17 +27,23 @@ NOTE: That the obligation and corda-finance CorDapps will automatically be insta
 
 1. `git clone http://github.com/roger3cev/obligation-cordapp`
 2. `cd obligation-cordapp`
-3. `./gradlew deployNodes` - building may take upto a minute (it's much quicker if you already have the Corda binaries)./r  
+3. `./gradlew deployNodes` - building may take upto a minute (it's much quicker if you already have the Corda binaries).
 4. `docker swarm init` - Initialize a swarm
 5.  `sudo docker network create -d overlay --subnet=10.0.9.0/22 --attachable overlay-network` - Create a subnet of your own
-6. Change the path to locate java-source or kotlin-source accordingly in .env file
-7. `cd bootstrapnodes`
-8. Change the ip address to point to the ip address of your nodes in nodes.properties file.
-9. `./deployNodes` - Run deployNodes script. This is run a series of commands to generate the nodes with the specified ip address.
-10. `cd ..` - Exit bootstrapnodes folder.
-11. Specify the static ip address of your choice for the containers in docker-compose.yml
+6. Specify static ip address of your choice for the containers in docker-compose.yml
+7. Specify nodes ip address in nodes.properties file.
+8. Change the path to locate java-source or kotlin-source nodes folder location accordingly in .env file
+9. `cd bootstrapnodes`
+10. `./deployNodes.sh` - Run deployNodes script. This runs a series of commands to generate the nodes with the specified ip address.
+11. `cd ..` - Exit bootstrapnodes folder.
 12. `docker-compose build` - Need to run only once and afterwards only if there is a change in the Dockerfile, run this command.
 13. `docker-compose up`
+
+# Docker commands that may be of use
+
+1. `docker stop $(docker ps -q)` - Stop the containers
+2. `docker rm $(docker ps -a -q)` - Remove the containers
+3. `docker exec -t -i PartyA /bin/bash` - To access docker container bash
 
 NOTE: Docker swarm is currently used to assign static ip address to run the containers in the local machine. If not, containers will not be able to communicate with each other in the local machine.
 
