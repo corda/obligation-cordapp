@@ -39,13 +39,14 @@ NOTE: That the obligation and corda-finance CorDapps will automatically be insta
 12. `docker-compose build` - Need to run only once and afterwards only if there is a change in the Dockerfile, run this command.
 13. `docker-compose up`
 
+NOTE: Docker swarm is currently used to assign static ip address to run the containers in the local machine. If not, containers will not be able to communicate with each other in the local machine.
+
 # Docker commands that may be of use
 
 1. `docker stop $(docker ps -q)` - Stop the containers
 2. `docker rm $(docker ps -a -q)` - Remove the containers
 3. `docker exec -t -i PartyA /bin/bash` - To access docker container bash
 
-NOTE: Docker swarm is currently used to assign static ip address to run the containers in the local machine. If not, containers will not be able to communicate with each other in the local machine.
 
 # Using the CorDapp via the web front-end
 
