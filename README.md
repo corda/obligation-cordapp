@@ -23,6 +23,24 @@ At this point you will have notary/network map node running as well as three oth
 
 NOTE: That the obligation and corda-finance CorDapps will automatically be installed for each node.
 
+# Instructions for setting up docker containers
+
+1. `git clone http://github.com/roger3cev/obligation-cordapp`
+2. `cd obligation-cordapp`
+3. `./gradlew deployNodes` - building may take upto a minute (it's much quicker if you already have the Corda binaries)./r  
+4. `docker swarm init` - Initialize a swarm
+5.  `sudo docker network create -d overlay --subnet=10.0.9.0/22 --attachable overlay-network` - Create a subnet of your own
+6. Change the path to locate java-source or kotlin-source accordingly in .env file
+7. `cd bootstrapnodes`
+8. Change the ip address to point to the ip address of your nodes in nodes.properties file.
+9. `./deployNodes` - Run deployNodes script. This is run a series of commands to generate the nodes with the specified ip address.
+10. `cd ..` - Exit bootstrapnodes folder.
+11. Specify the static ip address of your choice for the containers in docker-compose.yml
+12. `docker-compose build` - Need to run only once and afterwards only if there is a change in the Dockerfile, run this command.
+13. `docker-compose up`
+
+NOTE: Docker swarm is currently used to assign static ip address to run the containers in the local machine. If not, containers will not be able to communicate with each other in the local machine.
+
 # Using the CorDapp via the web front-end
 
 In your favourite web browers, navigate to:

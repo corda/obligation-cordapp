@@ -61,44 +61,57 @@ tasks.withType(JavaCompile) {
 }
 
 task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
+    ext.rpcUsers = [
+            ['username' : "user",
+             'password' : "password",
+             'permissions' : ["ALL"
+             ]]
+    ]
     directory "./build/nodes"
     node {
-        name "O=Notary,L=London,C=GB"
+        name "CN=Notary,O=Notary,L=London,C=GB"
         notary = [validating : true]
         p2pPort 10002
-        cordapps = ["net.corda:corda-finance:$corda_release_version"]
+        rpcSettings {
+            address("localhost:10003")
+            adminAddress("localhost:10021")
+        }
+        rpcUsers = ext.rpcUsers
+        webPort 10004
+        cordapps = ["$corda_release_group:corda-finance:$corda_release_version"]
+
     }
     node {
-        name "O=PartyA,L=London,C=GB"
+        name "CN=PartyA,O=PartyA,L=London,C=GB"
         p2pPort 10005
         rpcSettings {
             address("localhost:10006")
-            adminAddress("localhost:10046")
+            adminAddress("localhost:10031")
         }
+        rpcUsers = ext.rpcUsers
         webPort 10007
-        cordapps = ["net.corda:corda-finance:$corda_release_version"]
-        rpcUsers = [[ user: "user1", "password": "test", "permissions": ["ALL"]]]
+        cordapps = ["$corda_release_group:corda-finance:$corda_release_version"]
     }
     node {
-        name "O=PartyB,L=New York,C=US"
+        name "CN=PartyB,O=PartyB,L=London,C=GB"
         p2pPort 10008
         rpcSettings {
             address("localhost:10009")
-            adminAddress("localhost:10049")
+            adminAddress("localhost:10041")
         }
+        rpcUsers = ext.rpcUsers
         webPort 10010
-        cordapps = ["net.corda:corda-finance:$corda_release_version"]
-        rpcUsers = [[ user: "user1", "password": "test", "permissions": ["ALL"]]]
+        cordapps = ["$corda_release_group:corda-finance:$corda_release_version"]
     }
     node {
-        name "O=PartyC,L=Paris,C=FR"
+        name "CN=PartyC,O=PartyC,L=London,C=GB"
         p2pPort 10011
         rpcSettings {
             address("localhost:10012")
-            adminAddress("localhost:10052")
+            adminAddress("localhost:10051")
         }
+        rpcUsers = ext.rpcUsers
         webPort 10013
-        cordapps = ["net.corda:corda-finance:$corda_release_version"]
-        rpcUsers = [[ user: "user1", "password": "test", "permissions": ["ALL"]]]
+        cordapps = ["$corda_release_group:corda-finance:$corda_release_version"]
     }
 }
