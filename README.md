@@ -88,7 +88,6 @@ From the lenders UI you can transfer an obligation to a new lender. The procedur
 1. Remove references to "IOU"
 2. Resolve party names for the web front-end.
 3. Replace the Corda web server with a reactive spring boot web server
-4. Auto update the UI 
 
 
 Feel free to submit a PR.
