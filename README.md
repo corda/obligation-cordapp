@@ -45,9 +45,8 @@ You'll see a basic page, listing all the API end-points and static web content. 
 3. Click create IOU
 4. Wait for the transaction confirmation
 5. Click anywhere
-6. Press the refresh button
-7. The UI should update to reflect the new obligation.
-8. Navigate to the counterparties dashboard. You should see the same obligation there. The party names show up as random public keys as they are issued confidentially. Currently the web API doesn't resolve the party names.
+6. The UI should update to reflect the new obligation.
+7. Navigate to the counterparties dashboard. You should see the same obligation there. The party names show up as random public keys as they are issued confidentially. Currently the web API doesn't resolve the party names.
 
 ## Self issue some cash
 
@@ -58,8 +57,7 @@ From the obligation borrowers UI:
 3. Click "issue cash"
 4. Wait for the transaction confirmation
 5. click anywhere
-6. Click the refresh button
-7. You'll see the "Cash balances" section update
+6. You'll see the "Cash balances" section update
 
 ## Settling an obligation
 
@@ -72,15 +70,14 @@ From the obligation borrowers UI:
 3. Press the "settle" button
 4. Wait for the confirmation
 5. Click anywhere
-6. Press the refresh button
-7. You'll see that £500 of the obligation has been paid down
-8. Navigate to the lenders UI, click refresh, you'll see that £500 has been paid down
+6. You'll see that £500 of the obligation has been paid down
+7. Navigate to the lenders UI, click refresh, you'll see that £500 has been paid down
 
 This is a partial settlement. you can fully settle by sending another £500. The settlement happens via atomic DvP. The obligation is updated at the same time the cash is transfered from the borrower to the lender. Either both the obligation is updated and the cash is transferred or neither happen.
 
 That's it!
 
-From the lenders UI you can transfer an obligation to a new lender. The procedure is straight-forward. Just select the Party which is to be the new lender. Refresh teh UIs to see the reflected changes.
+From the lenders UI you can transfer an obligation to a new lender. The procedure is straight-forward. Just select the Party which is to be the new lender.
 
 
 # TODO
