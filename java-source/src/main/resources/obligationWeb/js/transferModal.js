@@ -1,7 +1,7 @@
 "use strict";
 
 // Similar to the IOU creation modal - see createIOUModal.js for comments.
-angular.module('demoAppModule').controller('TransferModalCtrl', function ($http, $uibModalInstance, $uibModal, apiBaseURL, peers, id) {
+angular.module('demoAppModule').controller('TransferModalCtrl', function ($http, $uibModalInstance, $uibModal, demoApp, apiBaseURL, peers, id) {
     const transferModal = this;
 
     transferModal.peers = peers;
@@ -25,7 +25,7 @@ angular.module('demoAppModule').controller('TransferModalCtrl', function ($http,
                 `transfer-obligation?id=${id}&party=${party}`;
 
             $http.get(issueIOUEndpoint).then(
-                (result) => transferModal.displayMessage(result),
+                (result) => demoApp.refresh(),
                 (result) => transferModal.displayMessage(result)
             );
         }
