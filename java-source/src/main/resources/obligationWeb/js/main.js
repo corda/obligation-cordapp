@@ -18,6 +18,7 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
             controller: 'CreateIOUModalCtrl',
             controllerAs: 'createIOUModal',
             resolve: {
+                demoApp: () => demoApp,
                 apiBaseURL: () => apiBaseURL,
                 peers: () => peers
             }
