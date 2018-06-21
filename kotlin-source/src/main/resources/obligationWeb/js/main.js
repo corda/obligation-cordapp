@@ -35,6 +35,7 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
             controller: 'IssueCashModalCtrl',
             controllerAs: 'issueCashModal',
             resolve: {
+                demoApp: () => demoApp,
                 apiBaseURL: () => apiBaseURL
             }
         });
@@ -49,6 +50,7 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
             controller: 'TransferModalCtrl',
             controllerAs: 'transferModal',
             resolve: {
+                demoApp: () => demoApp,
                 apiBaseURL: () => apiBaseURL,
                 peers: () => peers,
                 id: () => id
@@ -65,6 +67,7 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
             controller: 'SettleModalCtrl',
             controllerAs: 'settleModal',
             resolve: {
+                demoApp: () => demoApp,
                 apiBaseURL: () => apiBaseURL,
                 id: () => id
             }
