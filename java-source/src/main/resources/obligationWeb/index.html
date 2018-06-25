@@ -4,7 +4,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>IOU v2 CorDapp</title>
+    <title>Obligation CorDapp</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
           integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
@@ -17,7 +17,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.0-rc.1/angular.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/2.2.0/ui-bootstrap-tpls.min.js"></script>
     <script src="js/main.js"></script>
-    <script src="js/createIOUModal.js"></script>
+    <script src="js/createObligationModal.js"></script>
     <script src="js/issueCashModal.js"></script>
     <script src="js/transferModal.js"></script>
     <script src="js/settleModal.js"></script>
@@ -29,51 +29,51 @@
         <div class="navbar-header">
             <a class="navbar-brand" href="#">{{demoApp.thisNode}}</a>
         </div>
-        <button ng-click="demoApp.openCreateIOUModal()" type="button" class="btn btn-primary navbar-btn">Create IOU</button>
+        <button ng-click="demoApp.openCreateObligationModal()" type="button" class="btn btn-primary navbar-btn">Create Obligation</button>
         <button ng-click="demoApp.openIssueCashModal()" type="button" class="btn btn-primary navbar-btn">Issue cash</button>
         <button ng-click="demoApp.refresh()" type="button" class="btn btn-default navbar-btn"><span
                 class="glyphicon glyphicon-refresh"></span></button>
     </div>
 </nav>
 
-<script type="text/ng-template" id="createIOUModal.html">
+<script type="text/ng-template" id="createObligationModal.html">
     <div class="modal-header">
-        <h4 class="modal-title">Add new IOU</h4>
+        <h4 class="modal-title">Add new Obligation</h4>
     </div>
     <form>
         <div class="modal-body">
             <div class="form-group">
-                <label for="createIOUCounterparty" class="control-label">Counter-party:</label>
-                <select ng-model="createIOUModal.form.counterparty" class="form-control" id="createIOUCounterparty"
-                        ng-options="peer as peer for peer in createIOUModal.peers">
+                <label for="createObligationCounterparty" class="control-label">Counter-party:</label>
+                <select ng-model="createObligationModal.form.counterparty" class="form-control" id="createObligationCounterparty"
+                        ng-options="peer as peer for peer in createObligationModal.peers">
                 </select>
             </div>
             <div class="form-group">
-                <label for="createIOUCurrency" class="control-label">Currency (ISO code):</label>
-                <input type="text" ng-model="createIOUModal.form.currency" class="form-control" id="createIOUCurrency">
+                <label for="createObligationCurrency" class="control-label">Currency (ISO code):</label>
+                <input type="text" ng-model="createObligationModal.form.currency" class="form-control" id="createObligationCurrency">
             </div>
             <div class="form-group">
-                <label for="createIOUAmount" class="control-label">Amount (Int):</label>
-                <input type="text" ng-model="createIOUModal.form.amount" class="form-control" id="createIOUAmount">
+                <label for="createObligationAmount" class="control-label">Amount (Int):</label>
+                <input type="text" ng-model="createObligationModal.form.amount" class="form-control" id="createObligationAmount">
             </div>
-            <div ng-show="createIOUModal.formError" class="form-group">
+            <div ng-show="createObligationModal.formError" class="form-group">
                 <div class="alert alert-danger" role="alert">
                     <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
                     <span class="sr-only">Error:</span>
-                    Enter valid IOU creation parameters
+                    Enter valid Obligation creation parameters
                 </div>
             </div>
         </div>
         <div class="modal-footer">
-            <button ng-click="createIOUModal.cancel()" type="button" class="btn btn-default">Close</button>
-            <button ng-click="createIOUModal.create()" type="button" class="btn btn-primary">Create IOU</button>
+            <button ng-click="createObligationModal.cancel()" type="button" class="btn btn-default">Close</button>
+            <button ng-click="createObligationModal.create()" type="button" class="btn btn-primary">Create Obligation</button>
         </div>
     </form>
 </script>
 
-<script type="text/ng-template" id="createIOUMsgModal.html">
-    <div class="modal-body" id="create-iou-modal-body">
-        {{ createIOUMsgModal.message }}
+<script type="text/ng-template" id="createObligationMsgModal.html">
+    <div class="modal-body" id="create-Obligation-modal-body">
+        {{ createObligationMsgModal.message }}
     </div>
 </script>
 
@@ -114,7 +114,7 @@
 
 <script type="text/ng-template" id="transferModal.html">
     <div class="modal-header">
-        <h4 class="modal-title">Transfer IOU</h4>
+        <h4 class="modal-title">Transfer Obligation</h4>
     </div>
     <form>
         <div class="modal-body">
@@ -128,7 +128,7 @@
                 <div class="alert alert-danger" role="alert">
                     <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
                     <span class="sr-only">Error:</span>
-                    Enter valid IOU transfer parameters.
+                    Enter valid Obligation transfer parameters.
                 </div>
             </div>
         </div>
@@ -147,7 +147,7 @@
 
 <script type="text/ng-template" id="settleModal.html">
     <div class="modal-header">
-        <h4 class="modal-title">Settle IOU</h4>
+        <h4 class="modal-title">Settle Obligation</h4>
     </div>
     <form>
         <div class="modal-body">
@@ -163,7 +163,7 @@
                 <div class="alert alert-danger" role="alert">
                     <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
                     <span class="sr-only">Error:</span>
-                    Enter valid IOU settle parameters.
+                    Enter valid Obligation settle parameters.
                 </div>
             </div>
         </div>
@@ -209,15 +209,15 @@
 <div class="row">
     <div class="col-md-1"></div>
     <div class="col-md-10">
-        <div ng-show="!demoApp.ious.length" class="panel panel-primary">
+        <div ng-show="!demoApp.obligations.length" class="panel panel-primary">
             <div class="panel-heading">
-                <h3 class="panel-title">There are no recorded IOUs</h3>
+                <h3 class="panel-title">There are no recorded Obligations</h3>
             </div>
-            <div class="panel-body">Use the "Create IOU" button to send an IOU to a peer.</div>
+            <div class="panel-body">Use the "Create Obligation" button to send an Obligation to a peer.</div>
         </div>
-        <div ng-show="demoApp.ious.length" class="panel panel-primary">
+        <div ng-show="demoApp.obligations.length" class="panel panel-primary">
             <div class="panel-heading">
-                <h3 class="panel-title">Recorded IOUs:</h3>
+                <h3 class="panel-title">Recorded Obligations:</h3>
             </div>
             <div class="panel-body">
                 <table class="table">
@@ -231,16 +231,16 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr ng-repeat="iou in demoApp.ious">
-                        <td class="vert-align">{{iou.lender.substring(0,30)}}</td>
-                        <td class="vert-align">{{iou.borrower.substring(0,30)}}</td>
-                        <td class="vert-align">{{iou.amount}}</td>
-                        <td class="vert-align">{{iou.paid}}</td>
+                    <tr ng-repeat="obligation in demoApp.obligations">
+                        <td class="vert-align">{{obligation.lender.substring(0,30)}}</td>
+                        <td class="vert-align">{{obligation.borrower.substring(0,30)}}</td>
+                        <td class="vert-align">{{obligation.amount}}</td>
+                        <td class="vert-align">{{obligation.paid}}</td>
                         <td>
                             <div class="btn-group" role="group">
-                                <button ng-click="demoApp.openTransferModal(iou.linearId.id)" type="button" class="btn btn-primary">Transfer
+                                <button ng-click="demoApp.openTransferModal(obligation.linearId.id)" type="button" class="btn btn-primary">Transfer
                                 </button>
-                                <button ng-click="demoApp.openSettleModal(iou.linearId.id)" type="button" class="btn btn-primary">Settle
+                                <button ng-click="demoApp.openSettleModal(obligation.linearId.id)" type="button" class="btn btn-primary">Settle
                                 </button>
                             </div>
                         </td>

@@ -33,7 +33,7 @@ public class SettleObligation {
         private final Amount<Currency> amount;
         private final Boolean anonymous;
 
-        private final Step PREPARATION = new Step("Obtaining IOU from vault.");
+        private final Step PREPARATION = new Step("Obtaining Obligation from vault.");
         private final Step BUILDING = new Step("Building and verifying transaction.");
         private final Step SIGNING = new Step("Signing transaction.");
         private final Step COLLECTING = new Step("Collecting counterparty signature.") {
