@@ -1,6 +1,6 @@
 "use strict";
 
-angular.module('demoAppModule').controller('CreateIOUModalCtrl', function($http, $uibModalInstance, $uibModal, apiBaseURL, peers) {
+angular.module('demoAppModule').controller('CreateIOUModalCtrl', function($http, $uibModalInstance, $uibModal, demoApp, apiBaseURL, peers) {
     const createIOUModal = this;
 
     createIOUModal.peers = peers;
@@ -27,7 +27,7 @@ angular.module('demoAppModule').controller('CreateIOUModalCtrl', function($http,
 
             // We hit the endpoint to create the IOU and handle success/failure responses.
             $http.get(issueIOUEndpoint).then(
-                (result) => createIOUModal.displayMessage(result),
+                (result) => demoApp.refresh(),
                 (result) => createIOUModal.displayMessage(result)
             );
         }
