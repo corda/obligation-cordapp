@@ -25,13 +25,14 @@ NOTE: That the obligation and corda-finance CorDapps will automatically be insta
 
 # Using the CorDapp via the web front-end
 
-In your favourite web browers, navigate to:
+In your favourite web browser, navigate to:
 
 1. PartyA: `http://localhost:10007`
 2. PartyB: `http://localhost:10010`
 3. PartyC: `http://localhost:10013`
 
-You'll see a basic page, listing all the API end-points and static web content. Click on the "obligation" link under "static web content". The dashboard shows you a number of things:
+You'll see a basic page, listing all the API end-points and static web content. Click on the "obligation" link under 
+"static web content". The dashboard shows you a number of things:
 
 1. All issued obligations to date
 2. A button to issue a new obligation
