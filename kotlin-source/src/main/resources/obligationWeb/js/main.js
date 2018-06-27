@@ -20,7 +20,8 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
             resolve: {
                 demoApp: () => demoApp,
                 apiBaseURL: () => apiBaseURL,
-                peers: () => peers
+                peers: () => peers,
+                refreshCallback: () => demoApp.refresh
             }
         });
 
@@ -35,8 +36,8 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
             controller: 'IssueCashModalCtrl',
             controllerAs: 'issueCashModal',
             resolve: {
-                demoApp: () => demoApp,
-                apiBaseURL: () => apiBaseURL
+                apiBaseURL: () => apiBaseURL,
+                refreshCallback: () => demoApp.refresh
             }
         });
 
@@ -53,7 +54,8 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
                 demoApp: () => demoApp,
                 apiBaseURL: () => apiBaseURL,
                 peers: () => peers,
-                id: () => id
+                id: () => id,
+                refreshCallback: () => demoApp.refresh
             }
         });
 
@@ -69,7 +71,8 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
             resolve: {
                 demoApp: () => demoApp,
                 apiBaseURL: () => apiBaseURL,
-                id: () => id
+                id: () => id,
+                refreshCallback: () => demoApp.refresh
             }
         });
 

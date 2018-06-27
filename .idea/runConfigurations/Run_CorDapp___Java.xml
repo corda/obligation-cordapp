@@ -17,6 +17,7 @@
     <option name="PASS_PARENT_ENVS" value="true" />
     <module name="java-source_test" />
     <envs />
+    <shortenClasspath name="MANIFEST" />
     <method />
   </configuration>
 </component>
