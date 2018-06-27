@@ -1,7 +1,7 @@
 "use strict";
 
 // Similar to the IOU creation modal - see createIOUModal.js for comments.
-angular.module('demoAppModule').controller('SettleModalCtrl', function($http, $uibModalInstance, $uibModal, apiBaseURL, id) {
+angular.module('demoAppModule').controller('SettleModalCtrl', function($http, $uibModalInstance, $uibModal, apiBaseURL, id, refreshCallback) {
     const settleModal = this;
 
     settleModal.id = id;
@@ -25,8 +25,8 @@ angular.module('demoAppModule').controller('SettleModalCtrl', function($http, $u
                 `settle-obligation?id=${id}&amount=${amount}&currency=${currency}`;
 
             $http.get(issueIOUEndpoint).then(
-                (result) => settleModal.displayMessage(result),
-                (result) => settleModal.displayMessage(result)
+                (result) => { settleModal.displayMessage(result); refreshCallback(); },
+                (result) => { settleModal.displayMessage(result); refreshCallback(); }
             );
         }
     };
