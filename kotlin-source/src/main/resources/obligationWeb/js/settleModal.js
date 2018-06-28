@@ -24,7 +24,7 @@ angular.module('demoAppModule').controller('SettleModalCtrl', function($http, $u
                 apiBaseURL +
                 `settle-obligation?id=${id}&amount=${amount}&currency=${currency}`;
 
-            $http.get(issueIOUEndpoint).then(
+            $http.get(issueObligationEndpoint).then(
                 (result) => { settleModal.displayMessage(result); refreshCallback(); }
             );
         }

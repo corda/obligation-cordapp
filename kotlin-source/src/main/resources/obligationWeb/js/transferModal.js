@@ -24,7 +24,7 @@ angular.module('demoAppModule').controller('TransferModalCtrl', function ($http,
                 apiBaseURL +
                 `transfer-obligation?id=${id}&party=${party}`;
 
-            $http.get(issueIOUEndpoint).then(
+            $http.get(issueObligationEndpoint).then(
                 (result) => { transferModal.displayMessage(result); refreshCallback(); }
 
             );
