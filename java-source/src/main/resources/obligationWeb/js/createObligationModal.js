@@ -1,6 +1,6 @@
 "use strict";
 
-angular.module('demoAppModule').controller('CreateObligationModalCtrl', function($http, $uibModalInstance, $uibModal, demoApp, apiBaseURL, peers) {
+angular.module('demoAppModule').controller('CreateObligationModalCtrl', function($http, $uibModalInstance, $uibModal, apiBaseURL, peers, refreshCallback) {
     const createObligationModal = this;
 
     createObligationModal.peers = peers;
@@ -27,8 +27,8 @@ angular.module('demoAppModule').controller('CreateObligationModalCtrl', function
 
             // We hit the endpoint to create the Obligation and handle success/failure responses.
             $http.get(issueObligationEndpoint).then(
-                (result) => createObligationModal.displayMessage(result),
-                (result) => demoApp.refresh()
+                   (result) => { createObligationModal.displayMessage(result); refreshCallback();},
+                   (result) => { createObligationModal.displayMessage(result); refreshCallback();}
             );
         }
     };
