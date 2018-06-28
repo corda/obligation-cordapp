@@ -25,7 +25,7 @@ object SettleObligation {
         override val progressTracker: ProgressTracker = tracker()
 
         companion object {
-            object PREPARATION : ProgressTracker.Step("Obtaining IOU from vault.")
+            object PREPARATION : ProgressTracker.Step("Obtaining Obligation from vault.")
             object BUILDING : ProgressTracker.Step("Building and verifying transaction.")
             object SIGNING : ProgressTracker.Step("signing transaction.")
             object COLLECTING : ProgressTracker.Step("Collecting counterparty signature.") {

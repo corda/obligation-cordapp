@@ -11,13 +11,14 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
     $http.get(apiBaseURL + "me").then((response) => demoApp.thisNode = response.data.me);
     $http.get(apiBaseURL + "peers").then((response) => peers = response.data.peers);
 
-    /** Displays the IOU creation modal. */
-    demoApp.openCreateIOUModal = () => {
-        const createIOUModal = $uibModal.open({
-            templateUrl: 'createIOUModal.html',
-            controller: 'CreateIOUModalCtrl',
-            controllerAs: 'createIOUModal',
+    /** Displays the obligation creation modal. */
+    demoApp.openCreateObligationModal = () => {
+        const createObligationModal = $uibModal.open({
+            templateUrl: 'createObligationModal.html',
+            controller: 'CreateObligationModalCtrl',
+            controllerAs: 'createObligationModal',
             resolve: {
+                demoApp: () => demoApp,
                 apiBaseURL: () => apiBaseURL,
                 peers: () => peers,
                 refreshCallback: () => demoApp.refresh
@@ -25,7 +26,7 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
         });
 
         // Ignores the modal result events.
-        createIOUModal.result.then(() => {}, () => {});
+        createObligationModal.result.then(() => {}, () => {});
     };
 
     /** Displays the cash issuance modal. */
@@ -43,13 +44,14 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
         issueCashModal.result.then(() => {}, () => {});
     };
 
-    /** Displays the IOU transfer modal. */
+    /** Displays the Obligation transfer modal. */
     demoApp.openTransferModal = (id) => {
         const transferModal = $uibModal.open({
             templateUrl: 'transferModal.html',
             controller: 'TransferModalCtrl',
             controllerAs: 'transferModal',
             resolve: {
+                demoApp: () => demoApp,
                 apiBaseURL: () => apiBaseURL,
                 peers: () => peers,
                 id: () => id,
@@ -60,13 +62,14 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
         transferModal.result.then(() => {}, () => {});
     };
 
-    /** Displays the IOU settlement modal. */
+    /** Displays the Obligation settlement modal. */
     demoApp.openSettleModal = (id) => {
         const settleModal = $uibModal.open({
             templateUrl: 'settleModal.html',
             controller: 'SettleModalCtrl',
             controllerAs: 'settleModal',
             resolve: {
+                demoApp: () => demoApp,
                 apiBaseURL: () => apiBaseURL,
                 id: () => id,
                 refreshCallback: () => demoApp.refresh
@@ -78,8 +81,8 @@ angular.module('demoAppModule', ['ui.bootstrap']).controller('DemoAppCtrl', func
 
     /** Refreshes the front-end. */
     demoApp.refresh = () => {
-        // Update the list of IOUs.
-        $http.get(apiBaseURL + "obligations").then((response) => demoApp.ious =
+        // Update the list of Obligations.
+        $http.get(apiBaseURL + "obligations").then((response) => demoApp.obligations =
             Object.keys(response.data).map((key) => response.data[key]));
 
         // Update the cash balances.
