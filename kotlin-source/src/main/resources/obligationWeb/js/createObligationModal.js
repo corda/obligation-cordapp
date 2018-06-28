@@ -27,8 +27,8 @@ angular.module('demoAppModule').controller('CreateObligationModalCtrl', function
 
             // We hit the endpoint to create the Obligation and handle success/failure responses.
             $http.get(issueObligationEndpoint).then(
-                (result) => demoApp.refresh(),
-                (result) => createObligationModal.displayMessage(result)
+                (result) => createObligationModal.displayMessage(result),
+                (result) => demoApp.refresh()
             );
         }
     };
