@@ -13,15 +13,7 @@ comes with an API and website that allows you to do all of the aforementioned th
 
 # Instructions for setting up
 
-1. `git clone http://github.com/roger3cev/obligation-cordapp`
-2. `cd obligation-cordapp`
-3. `./gradlew deployNodes` - building may take upto a minute (it's much quicker if you already have the Corda binaries)./r  
-4. `cd kotlin-source/build/nodes`
-5. `./runnodes`
-
-At this point you will have notary/network map node running as well as three other nodes and their corresponding webservers. There should be 7 console windows in total. One for the networkmap/notary and two for each of the three nodes. The nodes take about 20-30 seconds to finish booting up.
-
-NOTE: That the obligation and corda-finance CorDapps will automatically be installed for each node.
+See https://docs.corda.net/tutorial-cordapp.html#running-the-example-cordapp.
 
 # Using the CorDapp via the web front-end
 
