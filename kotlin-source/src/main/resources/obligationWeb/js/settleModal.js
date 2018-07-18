@@ -52,8 +52,6 @@ angular.module('demoAppModule').controller('SettleModalCtrl', function($http, $u
 });
 
 angular.module('demoAppModule').controller('settleMsgModalCtrl', function($uibModalInstance, message) {
-    console.log("asdfasdfasdf");
-    console.log(message);
     const settleMsgModal = this;
     settleMsgModal.message = message.data;
 });
