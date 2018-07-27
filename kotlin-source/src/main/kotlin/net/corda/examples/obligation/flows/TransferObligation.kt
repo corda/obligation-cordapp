@@ -11,7 +11,9 @@ import net.corda.core.identity.AnonymousParty
 import net.corda.core.identity.Party
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
+import net.corda.core.transactions.WireTransaction
 import net.corda.core.utilities.ProgressTracker
+import net.corda.core.utilities.unwrap
 import net.corda.examples.obligation.Obligation
 import net.corda.examples.obligation.ObligationContract
 import net.corda.examples.obligation.ObligationContract.Companion.OBLIGATION_CONTRACT_ID
@@ -83,6 +85,12 @@ object TransferObligation {
             // Stage 8. Send any keys and certificates so the signers can verify each other's identity.
             // We call `toSet` in case the borrower and the new lender are the same party.
             val sessions = listOf(borrower, newLender).toSet().map { party: Party -> initiateFlow(party) }.toSet()
+            // This is to send to the transaction payload to the borrower and newlender so that they can
+            // synch identities with each other.
+            sessions.forEach {
+                it.sendAndReceive<Unit>(Triple(borrower, newLender, ptx.tx))
+            }
+            // for the lender, we still use the original IdentitySynchFlow
             subFlow(IdentitySyncFlow.Send(sessions, ptx.tx, SYNCING.childProgressTracker()))
 
             // Stage 9. Collect signatures from the borrower and the new lender.
@@ -134,6 +142,18 @@ object TransferObligation {
     class Responder(private val otherFlow: FlowSession) : FlowLogic<SignedTransaction>() {
         @Suspendable
         override fun call(): SignedTransaction {
+            // receive the triple payload
+            val (borrower, newlender, tx) = otherFlow.sendAndReceive<Triple<Party,Party, WireTransaction>>(Unit).unwrap { (borrower, newlender, tx) ->
+                Triple(borrower, newlender, tx)
+            }
+            val otherParty =
+                    when (ourIdentity) {
+                        borrower -> newlender
+                        newlender -> borrower
+                        else -> throw FlowException("Unknown borrower or newlender.")
+                    }
+            subFlow(IdentitySyncFlowWrapper.Initiator(otherParty, tx))
+
             subFlow(IdentitySyncFlow.Receive(otherFlow))
             val stx = subFlow(SignTxFlowNoChecking(otherFlow))
             return waitForLedgerCommit(stx.id)
