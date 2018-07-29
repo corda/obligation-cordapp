@@ -86,9 +86,11 @@ object TransferObligation {
             // We call `toSet` in case the borrower and the new lender are the same party.
             val sessions = listOf(borrower, newLender).toSet().map { party: Party -> initiateFlow(party) }.toSet()
             // This is to send to the transaction payload to the borrower and newlender so that they can
-            // synch identities with each other.
+            // sync identities with each other.
+            // We need to send the well-known parties borrower and newlender in the payload because the transaction itself
+            // only has borrower and lender as AbstractParty which may be anonymous.
             sessions.forEach {
-                it.sendAndReceive<Unit>(Triple(borrower, newLender, ptx.tx))
+                it.send(Triple(borrower, newLender, ptx.tx))
             }
             // for the lender, we still use the original IdentitySynchFlow
             subFlow(IdentitySyncFlow.Send(sessions, ptx.tx, SYNCING.childProgressTracker()))
@@ -140,10 +142,19 @@ object TransferObligation {
 
     @InitiatedBy(Initiator::class)
     class Responder(private val otherFlow: FlowSession) : FlowLogic<SignedTransaction>() {
+        override val progressTracker: ProgressTracker = tracker()
+        companion object {
+            object SYNCING : ProgressTracker.Step("Syncing identities.") {
+                override fun childProgressTracker() = IdentitySyncFlowWrapper.Initiator.tracker()
+            }
+            fun tracker() = ProgressTracker(SYNCING)
+        }
+
+
         @Suspendable
         override fun call(): SignedTransaction {
             // receive the triple payload
-            val (borrower, newlender, tx) = otherFlow.sendAndReceive<Triple<Party,Party, WireTransaction>>(Unit).unwrap { (borrower, newlender, tx) ->
+            val (borrower, newlender, tx) = otherFlow.receive<Triple<Party,Party, WireTransaction>>().unwrap { (borrower, newlender, tx) ->
                 Triple(borrower, newlender, tx)
             }
             val otherParty =
@@ -152,7 +163,7 @@ object TransferObligation {
                         newlender -> borrower
                         else -> throw FlowException("Unknown borrower or newlender.")
                     }
-            subFlow(IdentitySyncFlowWrapper.Initiator(otherParty, tx))
+            subFlow(IdentitySyncFlowWrapper.Initiator(otherParty, tx, SYNCING.childProgressTracker()))
 
             subFlow(IdentitySyncFlow.Receive(otherFlow))
             val stx = subFlow(SignTxFlowNoChecking(otherFlow))
