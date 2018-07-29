@@ -5,6 +5,7 @@ import net.corda.finance.POUNDS
 import net.corda.testing.core.singleIdentity
 import net.corda.testing.internal.chooseIdentity
 import org.jgroups.util.Util.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class TransferObligationTests : ObligationTests() {
@@ -89,9 +90,11 @@ class TransferObligationTests : ObligationTests() {
         assertNull(borrowerAnonymousName)
         assertNull(newlenderAnoymousName)
 
+        // Check anonymity is indeed resolved
         val newlenderDeanonymizedByBorrower = a.services.identityService.wellKnownPartyFromAnonymous(newlenderAnoymous)
         val borrowerDeanonymizedByNewlender = c.services.identityService.wellKnownPartyFromAnonymous(borrowerAnonymous)
-        // Check anonymity is indeed resolved
+        assertNotNull(newlenderDeanonymizedByBorrower)
+        assertNotNull(borrowerDeanonymizedByNewlender)
         assertEquals(a.info.singleIdentity(), borrowerDeanonymizedByNewlender)
         assertEquals(c.info.singleIdentity(), newlenderDeanonymizedByBorrower)
     }
