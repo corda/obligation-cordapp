@@ -153,7 +153,8 @@ object TransferObligation {
 
         @Suspendable
         override fun call(): SignedTransaction {
-            // receive the triple payload
+            // Stage 1. Receive the triple payload from current lender and have borrower and new lender
+            // sync each other's identity.
             val (borrower, newlender, tx) = otherFlow.receive<Triple<Party,Party, WireTransaction>>().unwrap { (borrower, newlender, tx) ->
                 Triple(borrower, newlender, tx)
             }
@@ -165,6 +166,7 @@ object TransferObligation {
                     }
             subFlow(IdentitySyncFlowWrapper.Initiator(otherParty, tx, SYNCING.childProgressTracker()))
 
+            // Stage 2. Respond to current lender's sync identity call
             subFlow(IdentitySyncFlow.Receive(otherFlow))
             val stx = subFlow(SignTxFlowNoChecking(otherFlow))
             return waitForLedgerCommit(stx.id)
