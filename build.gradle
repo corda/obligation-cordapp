@@ -1,6 +1,6 @@
 buildscript {
     ext.corda_release_group = 'net.corda'
-    ext.corda_release_version = '4.0-SNAPSHOT'
+    ext.corda_release_version = '4.0-SNAPSHOT-sean'
     ext.corda_gradle_plugins_version = '4.0.28'
     ext.kotlin_version = '1.2.51'
     ext.junit_version = '4.12'
