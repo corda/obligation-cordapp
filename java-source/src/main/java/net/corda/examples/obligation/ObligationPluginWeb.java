@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public class ObligationPlugin implements WebServerPluginRegistry {
+public class ObligationPluginWeb implements WebServerPluginRegistry {
     private final List<Function<CordaRPCOps, ?>> webApis = ImmutableList.of(ObligationApi::new);
 
     private final Map<String, String> staticServeDirs = ImmutableMap.of(
