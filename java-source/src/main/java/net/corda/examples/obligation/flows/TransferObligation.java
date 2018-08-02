@@ -134,19 +134,17 @@ public class TransferObligation {
             // We call `toSet` in case the borrower and the new lender are the same party.
             Set<FlowSession> sessions = new HashSet<>();
             Set<Party> parties = ImmutableSet.of(borrower, newLender);
-            FlowSession borrowerSession = initiateFlow(borrower);
-            FlowSession newLenderSession = initiateFlow(newLender);
-            sessions.add(borrowerSession);
-            sessions.add(newLenderSession);
-
+            for (Party party : parties) {
+                sessions.add(initiateFlow(party));
+            }
             // This is to send to the transaction payload to the borrower and newlender so that they can
             // sync identities with each other.
             // We need to send the well-known parties borrower and newlender in the payload because the transaction itself
             // only has borrower and lender as AbstractParty which may be anonymous.
             Triple p = new Triple(borrower, this.newLender, ptx.getTx());
-            borrowerSession.send(p);
-            newLenderSession.send(p);
-
+            for (FlowSession session: sessions) {
+                session.send(p);
+            }
             // for the lender, we still use the original IdentitySynchFlow
             subFlow(new IdentitySyncFlow.Send(sessions, ptx.getTx(), SYNCING.childProgressTracker()));
 
