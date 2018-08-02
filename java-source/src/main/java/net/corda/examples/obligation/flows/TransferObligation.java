@@ -3,6 +3,7 @@ package net.corda.examples.obligation.flows;
 import co.paralleluniverse.fibers.Suspendable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import kotlin.Triple;
 import net.corda.confidential.IdentitySyncFlow;
 import net.corda.confidential.SwapIdentitiesFlow;
 import net.corda.core.contracts.Command;
@@ -12,14 +13,17 @@ import net.corda.core.flows.*;
 import net.corda.core.identity.AbstractParty;
 import net.corda.core.identity.AnonymousParty;
 import net.corda.core.identity.Party;
+import net.corda.core.serialization.CordaSerializable;
 import net.corda.core.transactions.SignedTransaction;
 import net.corda.core.transactions.TransactionBuilder;
+import net.corda.core.transactions.WireTransaction;
 import net.corda.core.utilities.ProgressTracker;
 import net.corda.core.utilities.ProgressTracker.Step;
 import net.corda.examples.obligation.Obligation;
 import net.corda.examples.obligation.ObligationContract;
 import net.corda.examples.obligation.flows.ObligationBaseFlow.SignTxFlowNoChecking;
 
+import javax.validation.Payload;
 import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +33,17 @@ import java.util.Set;
 import static net.corda.examples.obligation.ObligationContract.OBLIGATION_CONTRACT_ID;
 
 public class TransferObligation {
+    @CordaSerializable
+    public class Payload {
+        public final Party borrower;
+        public final Party newLender;
+        public final WireTransaction tx;
+        public Payload(Party borrower, Party newLender, WireTransaction tx) {
+            this.borrower = borrower;
+            this.newLender = newLender;
+            this.tx = tx;
+        }
+    }
 
     @StartableByRPC
     @InitiatingFlow
@@ -119,9 +134,20 @@ public class TransferObligation {
             // We call `toSet` in case the borrower and the new lender are the same party.
             Set<FlowSession> sessions = new HashSet<>();
             Set<Party> parties = ImmutableSet.of(borrower, newLender);
-            for (Party party : parties) {
-                sessions.add(initiateFlow(party));
-            }
+            FlowSession borrowerSession = initiateFlow(borrower);
+            FlowSession newLenderSession = initiateFlow(newLender);
+            sessions.add(borrowerSession);
+            sessions.add(newLenderSession);
+
+            // This is to send to the transaction payload to the borrower and newlender so that they can
+            // sync identities with each other.
+            // We need to send the well-known parties borrower and newlender in the payload because the transaction itself
+            // only has borrower and lender as AbstractParty which may be anonymous.
+            Triple p = new Triple(borrower, this.newLender, ptx.getTx());
+            borrowerSession.send(p);
+            newLenderSession.send(p);
+
+            // for the lender, we still use the original IdentitySynchFlow
             subFlow(new IdentitySyncFlow.Send(sessions, ptx.getTx(), SYNCING.childProgressTracker()));
 
             // Stage 9. Collect signatures from the borrower and the new lender.
@@ -182,6 +208,25 @@ public class TransferObligation {
         @Suspendable
         @Override
         public SignedTransaction call() throws FlowException {
+            // Stage 1. Receive the triple payload from current lender and have borrower and new lender
+            // sync each other's identity.
+
+            Triple<Party, Party, WireTransaction> triple = otherFlow.receive(Triple.class).unwrap(data -> data);
+            Party borrower = triple.getFirst();
+            Party newlender = triple.getSecond();
+            WireTransaction tx = triple.getThird();
+            Party me = getOurIdentity();
+            Party otherParty;
+            if (me.getName().equals(borrower.getName())) {
+                otherParty = newlender;
+            }
+            else if (me.getName().equals(newlender.getName())) {
+                otherParty = borrower;
+            }
+            else throw new FlowException("Unknown borrower or newlender.");
+
+            subFlow(new IdentitySyncFlowWrapper.Initiator(otherParty, tx));
+
             subFlow(new IdentitySyncFlow.Receive(otherFlow));
             SignedTransaction stx = subFlow(new SignTxFlowNoChecking(otherFlow, SignTransactionFlow.Companion.tracker()));
             return waitForLedgerCommit(stx.getId());
