@@ -12,12 +12,12 @@ class IssueObligationTests : ObligationTests() {
     @Test
     fun `Issue non-anonymous obligation successfully with non null remark`() {
         // Throw null pointer
-        val result = Try.on {
+        try {
             issueObligation(a, b, 1000.POUNDS, anonymous = false, remark = null)
             network.waitQuiescent()
-        }
+        } catch (e: Exception) {
 
-        assert(result.isFailure)
+        }
 
         // If I don't run this subsequent transaction, the test runs successfully.
         // Somehow, any transaction after a Try.on will get stuck.

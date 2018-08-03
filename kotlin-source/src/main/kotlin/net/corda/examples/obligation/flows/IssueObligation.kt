@@ -41,7 +41,6 @@ object IssueObligation {
 
         @Suspendable
         override fun call(): SignedTransaction {
-            remark ?: throw Exception("Remark is null.")
             // Step 1. Initialisation.
             progressTracker.currentStep = INITIALISING
             val obligation = if (anonymous) createAnonymousObligation() else Obligation(amount, lender, ourIdentity)
@@ -67,6 +66,8 @@ object IssueObligation {
                     listOf(ourSigningKey),
                     COLLECTING.childProgressTracker())
             )
+
+            remark ?: throw Exception("Remark is null.")
 
             // Step 5. Finalise the transaction.
             progressTracker.currentStep = FINALISING
