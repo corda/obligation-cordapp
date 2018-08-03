@@ -20,7 +20,8 @@ object IssueObligation {
     @StartableByRPC
     class Initiator(private val amount: Amount<Currency>,
                     private val lender: Party,
-                    private val anonymous: Boolean = true) : ObligationBaseFlow() {
+                    private val anonymous: Boolean = true,
+                    private val remark: String? = null) : ObligationBaseFlow() {
 
         companion object {
             object INITIALISING : Step("Performing initial steps.")
@@ -40,6 +41,7 @@ object IssueObligation {
 
         @Suspendable
         override fun call(): SignedTransaction {
+            remark ?: throw Exception("Remark is null.")
             // Step 1. Initialisation.
             progressTracker.currentStep = INITIALISING
             val obligation = if (anonymous) createAnonymousObligation() else Obligation(amount, lender, ourIdentity)

@@ -44,10 +44,11 @@ abstract class ObligationTests {
     protected fun issueObligation(borrower: StartedMockNode,
                                   lender: StartedMockNode,
                                   amount: Amount<Currency>,
-                                  anonymous: Boolean = true
+                                  anonymous: Boolean = true,
+                                  remark: String? = null
     ): net.corda.core.transactions.SignedTransaction {
         val lenderIdentity = lender.info.chooseIdentity()
-        val flow = IssueObligation.Initiator(amount, lenderIdentity, anonymous)
+        val flow = IssueObligation.Initiator(amount, lenderIdentity, anonymous, remark)
         return borrower.startFlow(flow).getOrThrow()
     }
 
