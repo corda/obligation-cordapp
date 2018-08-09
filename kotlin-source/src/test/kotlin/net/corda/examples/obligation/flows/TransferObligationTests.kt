@@ -71,7 +71,7 @@ class TransferObligationTests : ObligationTests() {
     }
 
     @org.junit.Test
-    fun `Transfer Resolves Anonymous Parties`() {
+    fun `Transfer resolves anonymous parties`() {
         // Issue obligation.
         val issuanceTransaction = issueObligation(a, b, 1000.POUNDS)
         network.waitQuiescent()

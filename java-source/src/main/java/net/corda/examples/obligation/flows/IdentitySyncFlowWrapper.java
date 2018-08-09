@@ -1,8 +1,6 @@
 package net.corda.examples.obligation.flows;
 
-import afu.org.checkerframework.checker.oigj.qual.O;
 import co.paralleluniverse.fibers.Suspendable;
-import kotlin.Unit;
 import kotlin.collections.SetsKt;
 import net.corda.confidential.IdentitySyncFlow;
 import net.corda.core.flows.*;
@@ -10,10 +8,6 @@ import net.corda.core.identity.Party;
 import net.corda.core.transactions.WireTransaction;
 import net.corda.core.utilities.ProgressTracker;
 import net.corda.core.utilities.ProgressTracker.Step;
-import net.corda.core.utilities.UntrustworthyData;
-
-import java.util.HashSet;
-import java.util.Set;
 
 public class IdentitySyncFlowWrapper {
     @InitiatingFlow

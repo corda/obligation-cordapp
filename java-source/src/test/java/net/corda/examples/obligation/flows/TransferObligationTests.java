@@ -80,7 +80,7 @@ public class TransferObligationTests extends ObligationTests {
     }
 
     @Test
-    public void TransferResolvesAnonymousParties() throws Exception {
+    public void transferResolvesAnonymousParties() throws Exception {
         // Issue obligation.
         SignedTransaction issuanceTransaction = issueObligation(a, b, POUNDS(1000), false);
         network.waitQuiescent();
