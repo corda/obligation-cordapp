@@ -3,7 +3,6 @@ package net.corda.examples.obligation.flows;
 import co.paralleluniverse.fibers.Suspendable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import kotlin.Triple;
 import net.corda.confidential.IdentitySyncFlow;
 import net.corda.confidential.SwapIdentitiesFlow;
 import net.corda.core.contracts.Command;
@@ -13,38 +12,22 @@ import net.corda.core.flows.*;
 import net.corda.core.identity.AbstractParty;
 import net.corda.core.identity.AnonymousParty;
 import net.corda.core.identity.Party;
-import net.corda.core.serialization.CordaSerializable;
 import net.corda.core.transactions.SignedTransaction;
 import net.corda.core.transactions.TransactionBuilder;
-import net.corda.core.transactions.WireTransaction;
 import net.corda.core.utilities.ProgressTracker;
 import net.corda.core.utilities.ProgressTracker.Step;
 import net.corda.examples.obligation.Obligation;
 import net.corda.examples.obligation.ObligationContract;
 import net.corda.examples.obligation.flows.ObligationBaseFlow.SignTxFlowNoChecking;
 
-import javax.validation.Payload;
 import java.security.PublicKey;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import static net.corda.examples.obligation.ObligationContract.OBLIGATION_CONTRACT_ID;
 
 public class TransferObligation {
-    @CordaSerializable
-    public class Payload {
-        public final Party borrower;
-        public final Party newLender;
-        public final WireTransaction tx;
-        public Payload(Party borrower, Party newLender, WireTransaction tx) {
-            this.borrower = borrower;
-            this.newLender = newLender;
-            this.tx = tx;
-        }
-    }
-
     @StartableByRPC
     @InitiatingFlow
     public static class Initiator extends ObligationBaseFlow {
@@ -52,31 +35,31 @@ public class TransferObligation {
         private final Party newLender;
         private final Boolean anonymous;
 
-        private final Step PREPARATION = new Step("Obtaining Obligation from vault.");
-        private final Step BUILDING = new Step("Building and verifying transaction.");
-        private final Step SIGNING = new Step("Signing transaction.");
-        private final Step SYNCING = new Step("Syncing identities.") {
+        private final Step GET_OBLIGATION = new Step("Obtaining obligation from vault.");
+        private final Step CHECK_INITIATOR = new Step("Checking current lender is initiating flow.");
+        private final Step BUILD_TRANSACTION = new Step("Building and verifying transaction.");
+        private final Step SIGN_TRANSACTION = new Step("Signing transaction.");
+        private final Step SYNC_OUR_IDENTITY = new Step("Syncing our identity with the counterparties.") {
             @Override
             public ProgressTracker childProgressTracker() {
                 return IdentitySyncFlow.Send.Companion.tracker();
             }
         };
-        private final Step COLLECTING = new Step("Collecting counterparty signature.") {
+        private final Step COLLECT_SIGS = new Step("Collecting counterparty signatures.") {
             @Override
             public ProgressTracker childProgressTracker() {
                 return CollectSignaturesFlow.Companion.tracker();
             }
         };
-        private final Step FINALISING = new Step("Finalising transaction.") {
+        private final Step SYNC_OTHER_IDENTITIES = new Step("Making counterparties sync identities with each other.");
+        private final Step FINALISE = new Step("Finalising transaction.") {
             @Override
             public ProgressTracker childProgressTracker() {
                 return FinalityFlow.Companion.tracker();
             }
         };
 
-        private final ProgressTracker progressTracker = new ProgressTracker(
-                PREPARATION, BUILDING, SIGNING, SYNCING, COLLECTING, FINALISING
-        );
+        private final ProgressTracker progressTracker = new ProgressTracker(GET_OBLIGATION, CHECK_INITIATOR, BUILD_TRANSACTION, SIGN_TRANSACTION, SYNC_OUR_IDENTITY, COLLECT_SIGS, SYNC_OTHER_IDENTITIES, FINALISE);
 
         public Initiator(UniqueIdentifier linearId, Party newLender, Boolean anonymous) {
             this.linearId = linearId;
@@ -92,21 +75,24 @@ public class TransferObligation {
         @Suspendable
         @Override
         public SignedTransaction call() throws FlowException {
-            // Stage 1. Retrieve obligation specified by linearId from the vault.
-            progressTracker.setCurrentStep(PREPARATION);
+            // Stage 1. Retrieve obligation with the correct linear ID from the vault.
+            progressTracker.setCurrentStep(GET_OBLIGATION);
             final StateAndRef<Obligation> obligationToTransfer = getObligationByLinearId(linearId);
             final Obligation inputObligation = obligationToTransfer.getState().getData();
 
-            // Stage 2. This flow can only be initiated by the current recipient.
-            final AbstractParty lenderIdentity = getLenderIdentity(inputObligation);
+            final Party borrower = getBorrowerIdentity(inputObligation);
 
-            // Stage 3. Abort if the borrower started this flow.
-            if (!getOurIdentity().equals(lenderIdentity)) {
+            // We call `toSet` in case the borrower and the new lender are the same party.
+            Set<FlowSession> sessions = ImmutableSet.of(initiateFlow(borrower), initiateFlow(newLender));
+
+            // Stage 2. This flow can only be initiated by the current lender. Abort if the borrower started this flow.
+            progressTracker.setCurrentStep(CHECK_INITIATOR);
+            if (!getOurIdentity().equals(getLenderIdentity(inputObligation))) {
                 throw new IllegalStateException("Obligation transfer can only be initiated by the lender.");
             }
 
-            // Stage 4. Create the new obligation state reflecting a new lender.
-            progressTracker.setCurrentStep(BUILDING);
+            // Stage 3. Create the new obligation state reflecting a new lender.
+            progressTracker.setCurrentStep(BUILD_TRANSACTION);
             final Obligation transferredObligation = createOutputObligation(inputObligation);
 
             // Stage 4. Create the transfer command.
@@ -115,50 +101,39 @@ public class TransferObligation {
                     .add(transferredObligation.getLender().getOwningKey()).build();
             final Command transferCommand = new Command<>(new ObligationContract.Commands.Transfer(), signerKeys);
 
-            // Stage 5. Create a transaction builder, then add the states and commands.
+            // Stage 5. Create a transaction builder, add the states and commands, and verify the output.
             final TransactionBuilder builder = new TransactionBuilder(getFirstNotary())
                     .addInputState(obligationToTransfer)
                     .addOutputState(transferredObligation, OBLIGATION_CONTRACT_ID)
                     .addCommand(transferCommand);
-
-            // Stage 6. Verify and sign the transaction.
-            progressTracker.setCurrentStep(SIGNING);
             builder.verify(getServiceHub());
+
+            // Stage 6. Sign the transaction using the key we originally used.
+            progressTracker.setCurrentStep(SIGN_TRANSACTION);
             final SignedTransaction ptx = getServiceHub().signInitialTransaction(builder, inputObligation.getLender().getOwningKey());
 
-            // Stage 7. Get a Party object for the borrower.
-            progressTracker.setCurrentStep(SYNCING);
-            final Party borrower = getBorrowerIdentity(inputObligation);
+            // Stage 7. Share our anonymous identity with the borrower and the new lender.
+            progressTracker.setCurrentStep(SYNC_OUR_IDENTITY);
+            subFlow(new IdentitySyncFlow.Send(sessions, ptx.getTx(), SYNC_OUR_IDENTITY.childProgressTracker()));
 
-            // Stage 8. Send any keys and certificates so the signers can verify each other's identity.
-            // We call `toSet` in case the borrower and the new lender are the same party.
-            Set<FlowSession> sessions = new HashSet<>();
-            Set<Party> parties = ImmutableSet.of(borrower, newLender);
-            for (Party party : parties) {
-                sessions.add(initiateFlow(party));
-            }
-            // This is to send to the transaction payload to the borrower and newlender so that they can
-            // sync identities with each other.
-            // We need to send the well-known parties borrower and newlender in the payload because the transaction itself
-            // only has borrower and lender as AbstractParty which may be anonymous.
-            Triple p = new Triple(borrower, this.newLender, ptx.getTx());
-            for (FlowSession session: sessions) {
-                session.send(p);
-            }
-            // for the lender, we still use the original IdentitySynchFlow
-            subFlow(new IdentitySyncFlow.Send(sessions, ptx.getTx(), SYNCING.childProgressTracker()));
-
-            // Stage 9. Collect signatures from the borrower and the new lender.
-            progressTracker.setCurrentStep(COLLECTING);
+            // Stage 8. Collect signatures from the borrower and the new lender.
+            progressTracker.setCurrentStep(COLLECT_SIGS);
             final SignedTransaction stx = subFlow(new CollectSignaturesFlow(
                     ptx,
                     sessions,
                     ImmutableList.of(inputObligation.getLender().getOwningKey()),
-                    COLLECTING.childProgressTracker()));
+                    COLLECT_SIGS.childProgressTracker()));
 
-            // Stage 10. Notarise and record, the transaction in our vaults. Send a copy to me as well.
-            progressTracker.setCurrentStep(FINALISING);
-            return subFlow(new FinalityFlow(stx, ImmutableSet.of(getOurIdentity())));
+            // Stage 9. Tell the counterparties about each other so they can sync confidential identities.
+            progressTracker.setCurrentStep(SYNC_OTHER_IDENTITIES);
+            for (FlowSession session: sessions) {
+                if (session.getCounterparty().equals(borrower)) session.send(newLender);
+                else session.send(borrower);
+            }
+
+            // Stage 10. Notarise and record the transaction in our vaults.
+            progressTracker.setCurrentStep(FINALISE);
+            return subFlow(new FinalityFlow(stx));
         }
 
         @Suspendable
@@ -173,7 +148,6 @@ public class TransferObligation {
         @Suspendable
         private Obligation createOutputObligation(Obligation inputObligation) throws FlowException {
             if (anonymous) {
-                // TODO: Is there a flow to get a key and cert only from the counterparty?
                 final HashMap<Party, AnonymousParty> txKeys = subFlow(new SwapIdentitiesFlow(newLender));
                 if (!txKeys.containsKey(newLender)) {
                     throw new FlowException("Couldn't get lender's conf. identity.");
@@ -203,30 +177,33 @@ public class TransferObligation {
             this.otherFlow = otherFlow;
         }
 
+        private final Step SYNC_FIRST_IDENTITY = new Step("Syncing our identity with the current lender.");
+        private final Step SIGN_TRANSACTION = new Step("Signing transaction.");
+        private final Step SYNC_SECOND_IDENTITY = new Step("Syncing our identity with the other counterparty.") {
+            @Override
+            public ProgressTracker childProgressTracker() {
+                return FinalityFlow.Companion.tracker();
+            }
+        };
+
+        private final ProgressTracker progressTracker = new ProgressTracker(SYNC_FIRST_IDENTITY, SIGN_TRANSACTION, SYNC_SECOND_IDENTITY);
+
         @Suspendable
         @Override
         public SignedTransaction call() throws FlowException {
-            // Stage 1. Receive the triple payload from current lender and have borrower and new lender
-            // sync each other's identity.
-
-            Triple<Party, Party, WireTransaction> triple = otherFlow.receive(Triple.class).unwrap(data -> data);
-            Party borrower = triple.getFirst();
-            Party newlender = triple.getSecond();
-            WireTransaction tx = triple.getThird();
-            Party me = getOurIdentity();
-            Party otherParty;
-            if (me.getName().equals(borrower.getName())) {
-                otherParty = newlender;
-            }
-            else if (me.getName().equals(newlender.getName())) {
-                otherParty = borrower;
-            }
-            else throw new FlowException("Unknown borrower or newlender.");
-
-            subFlow(new IdentitySyncFlowWrapper.Initiator(otherParty, tx));
-
+            // Stage 1. Sync identities with the current lender.
+            progressTracker.setCurrentStep(SYNC_FIRST_IDENTITY);
             subFlow(new IdentitySyncFlow.Receive(otherFlow));
+
+            // Stage 2. Sign the transaction.
+            progressTracker.setCurrentStep(SIGN_TRANSACTION);
             SignedTransaction stx = subFlow(new SignTxFlowNoChecking(otherFlow, SignTransactionFlow.Companion.tracker()));
+
+            // Stage 3. Sync identities with the other counterparty.
+            progressTracker.setCurrentStep(SYNC_SECOND_IDENTITY);
+            Party otherParty = otherFlow.receive(Party.class).unwrap(data -> data);
+            subFlow(new IdentitySyncFlowWrapper.Initiator(otherParty, stx.getTx(), SYNC_SECOND_IDENTITY.childProgressTracker()));
+
             return waitForLedgerCommit(stx.getId());
         }
     }

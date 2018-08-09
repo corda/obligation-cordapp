@@ -11,8 +11,8 @@ import net.corda.core.identity.AnonymousParty
 import net.corda.core.identity.Party
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
-import net.corda.core.transactions.WireTransaction
 import net.corda.core.utilities.ProgressTracker
+import net.corda.core.utilities.ProgressTracker.Step
 import net.corda.core.utilities.unwrap
 import net.corda.examples.obligation.Obligation
 import net.corda.examples.obligation.ObligationContract
@@ -29,37 +29,41 @@ object TransferObligation {
         override val progressTracker: ProgressTracker = tracker()
 
         companion object {
-            object PREPARATION : ProgressTracker.Step("Obtaining Obligation from vault.")
-            object BUILDING : ProgressTracker.Step("Building and verifying transaction.")
-            object SIGNING : ProgressTracker.Step("signing transaction.")
-            object SYNCING : ProgressTracker.Step("Syncing identities.") {
+            object GET_OBLIGATION : Step("Obtaining obligation from vault.")
+            object CHECK_INITIATOR : Step("Checking current lender is initiating flow.")
+            object BUILD_TRANSACTION : Step("Building and verifying transaction.")
+            object SIGN_TRANSACTION : Step("Signing transaction.")
+            object SYNC_OUR_IDENTITY : Step("Syncing our identity with the counterparties.") {
                 override fun childProgressTracker() = IdentitySyncFlow.Send.tracker()
             }
-            object COLLECTING : ProgressTracker.Step("Collecting counterparty signature.") {
+            object COLLECT_SIGS : Step("Collecting counterparty signatures.") {
                 override fun childProgressTracker() = CollectSignaturesFlow.tracker()
             }
-            object FINALISING : ProgressTracker.Step("Finalising transaction.") {
+            object SYNC_OTHER_IDENTITIES : Step("Making counterparties sync identities with each other.")
+            object FINALISE : Step("Finalising transaction.") {
                 override fun childProgressTracker() = FinalityFlow.tracker()
             }
 
-            fun tracker() = ProgressTracker(PREPARATION, BUILDING, SIGNING, SYNCING, COLLECTING, FINALISING)
+            fun tracker() = ProgressTracker(GET_OBLIGATION, CHECK_INITIATOR, BUILD_TRANSACTION, SIGN_TRANSACTION, SYNC_OUR_IDENTITY, COLLECT_SIGS, SYNC_OTHER_IDENTITIES, FINALISE)
         }
 
         @Suspendable
         override fun call(): SignedTransaction {
-            // Stage 1. Retrieve obligation specified by linearId from the vault.
-            progressTracker.currentStep = PREPARATION
+            // Stage 1. Retrieve obligation with the correct linear ID from the vault.
+            progressTracker.currentStep = GET_OBLIGATION
             val obligationToTransfer = getObligationByLinearId(linearId)
             val inputObligation = obligationToTransfer.state.data
 
-            // Stage 2. This flow can only be initiated by the current recipient.
-            val lenderIdentity = getLenderIdentity(inputObligation)
+            val borrower = getBorrowerIdentity(inputObligation)
+            // We call `toSet` in case the borrower and the new lender are the same party.
+            val sessions = listOf(borrower, newLender).toSet().map { party -> initiateFlow(party) }.toSet()
 
-            // Stage 3. Abort if the borrower started this flow.
-            check(ourIdentity == lenderIdentity) { "Obligation transfer can only be initiated by the lender." }
+            // Stage 2. This flow can only be initiated by the current lender. Abort if the borrower started this flow.
+            progressTracker.currentStep = CHECK_INITIATOR
+            check(ourIdentity == getLenderIdentity(inputObligation)) { "Obligation transfer can only be initiated by the lender." }
 
-            // Stage 4. Create the new obligation state reflecting a new lender.
-            progressTracker.currentStep = BUILDING
+            // Stage 3. Create the new obligation state reflecting a new lender.
+            progressTracker.currentStep = BUILD_TRANSACTION
             val transferredObligation = createOutputObligation(inputObligation)
 
             // Stage 4. Create the transfer command.
@@ -67,46 +71,36 @@ object TransferObligation {
             val signerKeys = signers.map { it.owningKey }
             val transferCommand = Command(ObligationContract.Commands.Transfer(), signerKeys)
 
-            // Stage 5. Create a transaction builder, then add the states and commands.
+            // Stage 5. Create a transaction builder, add the states and commands, and verify the output.
             val builder = TransactionBuilder(firstNotary)
                     .addInputState(obligationToTransfer)
                     .addOutputState(transferredObligation, OBLIGATION_CONTRACT_ID)
                     .addCommand(transferCommand)
-
-            // Stage 6. Verify and sign the transaction.
-            progressTracker.currentStep = SIGNING
             builder.verify(serviceHub)
+
+            // Stage 6. Sign the transaction using the key we originally used.
+            progressTracker.currentStep = SIGN_TRANSACTION
             val ptx = serviceHub.signInitialTransaction(builder, inputObligation.lender.owningKey)
 
-            // Stage 7. Get a Party object for the borrower.
-            progressTracker.currentStep = SYNCING
-            val borrower = getBorrowerIdentity(inputObligation)
+            // Stage 7. Share our anonymous identity with the borrower and the new lender.
+            progressTracker.currentStep = SYNC_OUR_IDENTITY
+            subFlow(IdentitySyncFlow.Send(sessions, ptx.tx, SYNC_OUR_IDENTITY.childProgressTracker()))
 
-            // Stage 8. Send any keys and certificates so the signers can verify each other's identity.
-            // We call `toSet` in case the borrower and the new lender are the same party.
-            val sessions = listOf(borrower, newLender).toSet().map { party: Party -> initiateFlow(party) }.toSet()
-            // This is to send to the transaction payload to the borrower and newlender so that they can
-            // sync identities with each other.
-            // We need to send the well-known parties borrower and newlender in the payload because the transaction itself
-            // only has borrower and lender as AbstractParty which may be anonymous.
-            sessions.forEach {
-                it.send(Triple(borrower, newLender, ptx.tx))
-            }
-            // for the lender, we still use the original IdentitySynchFlow
-            subFlow(IdentitySyncFlow.Send(sessions, ptx.tx, SYNCING.childProgressTracker()))
-
-            // Stage 9. Collect signatures from the borrower and the new lender.
-            progressTracker.currentStep = COLLECTING
+            // Stage 8. Collect signatures from the borrower and the new lender.
+            progressTracker.currentStep = COLLECT_SIGS
             val stx = subFlow(CollectSignaturesFlow(
-                    partiallySignedTx = ptx,
-                    sessionsToCollectFrom = sessions,
-                    myOptionalKeys = listOf(inputObligation.lender.owningKey),
-                    progressTracker = COLLECTING.childProgressTracker())
-            )
+                    ptx, sessions, listOf(inputObligation.lender.owningKey), COLLECT_SIGS.childProgressTracker()))
 
-            // Stage 10. Notarise and record, the transaction in our vaults. Send a copy to me as well.
-            progressTracker.currentStep = FINALISING
-            return subFlow(FinalityFlow(stx, setOf(ourIdentity)))
+            // Stage 9. Tell the counterparties about each other so they can sync confidential identities.
+            progressTracker.currentStep = SYNC_OTHER_IDENTITIES
+            sessions.forEach { session ->
+                if (session.counterparty == borrower) session.send(newLender)
+                else session.send(borrower)
+            }
+
+            // Stage 10. Notarise and record the transaction in our vaults.
+            progressTracker.currentStep = FINALISE
+            return subFlow(FinalityFlow(stx))
         }
 
         @Suspendable
@@ -121,7 +115,6 @@ object TransferObligation {
         @Suspendable
         private fun createOutputObligation(inputObligation: Obligation): Obligation {
             return if (anonymous) {
-                // TODO: Is there a flow to get a key and cert only from the counterparty?
                 val txKeys = subFlow(SwapIdentitiesFlow(newLender))
                 val anonymousLender = txKeys[newLender] ?: throw FlowException("Couldn't get lender's conf. identity.")
                 inputObligation.withNewLender(anonymousLender)
@@ -143,32 +136,33 @@ object TransferObligation {
     @InitiatedBy(Initiator::class)
     class Responder(private val otherFlow: FlowSession) : FlowLogic<SignedTransaction>() {
         override val progressTracker: ProgressTracker = tracker()
+
         companion object {
-            object SYNCING : ProgressTracker.Step("Syncing identities.") {
-                override fun childProgressTracker() = IdentitySyncFlowWrapper.Initiator.tracker()
+            object SYNC_FIRST_IDENTITY : Step("Syncing our identity with the current lender.")
+            object SIGN_TRANSACTION : Step("Signing transaction.")
+            object SYNC_SECOND_IDENTITY : Step("Syncing our identity with the other counterparty.") {
+                override fun childProgressTracker() = IdentitySyncFlow.Send.tracker()
             }
-            fun tracker() = ProgressTracker(SYNCING)
+
+            fun tracker() = ProgressTracker(SYNC_FIRST_IDENTITY, SIGN_TRANSACTION, SYNC_SECOND_IDENTITY)
         }
 
 
         @Suspendable
         override fun call(): SignedTransaction {
-            // Stage 1. Receive the triple payload from current lender and have borrower and new lender
-            // sync each other's identity.
-            val (borrower, newlender, tx) = otherFlow.receive<Triple<Party,Party, WireTransaction>>().unwrap { (borrower, newlender, tx) ->
-                Triple(borrower, newlender, tx)
-            }
-            val otherParty =
-                    when (ourIdentity) {
-                        borrower -> newlender
-                        newlender -> borrower
-                        else -> throw FlowException("Unknown borrower or newlender.")
-                    }
-            subFlow(IdentitySyncFlowWrapper.Initiator(otherParty, tx, SYNCING.childProgressTracker()))
-
-            // Stage 2. Respond to current lender's sync identity call
+            // Stage 1. Sync identities with the current lender.
+            progressTracker.currentStep = SYNC_FIRST_IDENTITY
             subFlow(IdentitySyncFlow.Receive(otherFlow))
+
+            // Stage 2. Sign the transaction.
+            progressTracker.currentStep = SIGN_TRANSACTION
             val stx = subFlow(SignTxFlowNoChecking(otherFlow))
+
+            // Stage 3. Sync identities with the other counterparty.
+            progressTracker.currentStep = SYNC_SECOND_IDENTITY
+            val otherParty = otherFlow.receive<Party>().unwrap { it }
+            subFlow(IdentitySyncFlowWrapper.Initiator(otherParty, stx.tx, SYNC_SECOND_IDENTITY.childProgressTracker()))
+
             return waitForLedgerCommit(stx.id)
         }
     }

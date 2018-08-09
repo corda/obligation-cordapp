@@ -71,7 +71,7 @@ class TransferObligationTests : ObligationTests() {
     }
 
     @org.junit.Test
-    fun `Transfer Resolves Anonymous Parties`() {
+    fun `Transfer resolves anonymous parties`() {
         // Issue obligation.
         val issuanceTransaction = issueObligation(a, b, 1000.POUNDS)
         network.waitQuiescent()
@@ -84,13 +84,14 @@ class TransferObligationTests : ObligationTests() {
 
         val borrowerAnonymous = transferredObligation.borrower
         val newlenderAnoymous = transferredObligation.lender
-        // Check they are indeed anonymous
+
+        // Check they are indeed anonymous.
         val borrowerAnonymousName = borrowerAnonymous.nameOrNull()
         val newlenderAnoymousName = newlenderAnoymous.nameOrNull()
         assertNull(borrowerAnonymousName)
         assertNull(newlenderAnoymousName)
 
-        // Check anonymity is indeed resolved
+        // Check anonymity is indeed resolved.
         val newlenderDeanonymizedByBorrower = a.services.identityService.wellKnownPartyFromAnonymous(newlenderAnoymous)
         val borrowerDeanonymizedByNewlender = c.services.identityService.wellKnownPartyFromAnonymous(borrowerAnonymous)
         assertNotNull(newlenderDeanonymizedByBorrower)
