@@ -12,9 +12,7 @@ import org.junit.rules.ExpectedException;
 import static net.corda.finance.Currencies.POUNDS;
 import static net.corda.testing.internal.InternalTestUtilsKt.chooseIdentity;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 public class TransferObligationTests extends ObligationTests {
 

@@ -9,11 +9,10 @@ import net.corda.core.flows.*
 import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.AnonymousParty
 import net.corda.core.identity.Party
-import net.corda.core.serialization.CordaSerializable
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
-import net.corda.core.transactions.WireTransaction
 import net.corda.core.utilities.ProgressTracker
+import net.corda.core.utilities.ProgressTracker.Step
 import net.corda.core.utilities.unwrap
 import net.corda.examples.obligation.Obligation
 import net.corda.examples.obligation.ObligationContract
@@ -30,21 +29,22 @@ object TransferObligation {
         override val progressTracker: ProgressTracker = tracker()
 
         companion object {
-            object GET_OBLIGATION : ProgressTracker.Step("Obtaining obligation from vault.")
-            object CHECK_INITIATOR : ProgressTracker.Step("Checking current lender is initating flow.")
-            object BUILD_TRANSACTION : ProgressTracker.Step("Building and verifying transaction.")
-            object SIGN_TRANSACTION : ProgressTracker.Step("Signing transaction.")
-            object SYNC_OUR_IDENTITY : ProgressTracker.Step("Syncing our identity with the counterparties.") {
+            object GET_OBLIGATION : Step("Obtaining obligation from vault.")
+            object CHECK_INITIATOR : Step("Checking current lender is initiating flow.")
+            object BUILD_TRANSACTION : Step("Building and verifying transaction.")
+            object SIGN_TRANSACTION : Step("Signing transaction.")
+            object SYNC_OUR_IDENTITY : Step("Syncing our identity with the counterparties.") {
                 override fun childProgressTracker() = IdentitySyncFlow.Send.tracker()
             }
-            object COLLECT_SIGS : ProgressTracker.Step("Collecting counterparty signatures.") {
+            object COLLECT_SIGS : Step("Collecting counterparty signatures.") {
                 override fun childProgressTracker() = CollectSignaturesFlow.tracker()
             }
-            object FINALISE : ProgressTracker.Step("Finalising transaction.") {
+            object SYNC_OTHER_IDENTITIES : Step("Making counterparties sync identities with each other.")
+            object FINALISE : Step("Finalising transaction.") {
                 override fun childProgressTracker() = FinalityFlow.tracker()
             }
 
-            fun tracker() = ProgressTracker(GET_OBLIGATION, CHECK_INITIATOR, BUILD_TRANSACTION, SIGN_TRANSACTION, SYNC_OUR_IDENTITY, COLLECT_SIGS, FINALISE)
+            fun tracker() = ProgressTracker(GET_OBLIGATION, CHECK_INITIATOR, BUILD_TRANSACTION, SIGN_TRANSACTION, SYNC_OUR_IDENTITY, COLLECT_SIGS, SYNC_OTHER_IDENTITIES, FINALISE)
         }
 
         @Suspendable
@@ -92,6 +92,7 @@ object TransferObligation {
                     ptx, sessions, listOf(inputObligation.lender.owningKey), COLLECT_SIGS.childProgressTracker()))
 
             // Stage 9. Tell the counterparties about each other so they can sync confidential identities.
+            progressTracker.currentStep = SYNC_OTHER_IDENTITIES
             sessions.forEach { session ->
                 if (session.counterparty == borrower) session.send(newLender)
                 else session.send(borrower)
@@ -137,11 +138,11 @@ object TransferObligation {
         override val progressTracker: ProgressTracker = tracker()
 
         companion object {
-            object SYNC_FIRST_IDENTITY : ProgressTracker.Step("Syncing our identity with the current lender.") {
+            object SYNC_FIRST_IDENTITY : Step("Syncing our identity with the current lender.") {
                 override fun childProgressTracker() = IdentitySyncFlow.Send.tracker()
             }
-            object SIGN_TRANSACTION : ProgressTracker.Step("Signing transaction.")
-            object SYNC_SECOND_IDENTITY : ProgressTracker.Step("Syncing our identity with the other counterparty.") {
+            object SIGN_TRANSACTION : Step("Signing transaction.")
+            object SYNC_SECOND_IDENTITY : Step("Syncing our identity with the other counterparty.") {
                 override fun childProgressTracker() = IdentitySyncFlow.Send.tracker()
             }
 
