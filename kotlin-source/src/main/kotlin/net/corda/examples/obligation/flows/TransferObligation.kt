@@ -138,9 +138,7 @@ object TransferObligation {
         override val progressTracker: ProgressTracker = tracker()
 
         companion object {
-            object SYNC_FIRST_IDENTITY : Step("Syncing our identity with the current lender.") {
-                override fun childProgressTracker() = IdentitySyncFlow.Send.tracker()
-            }
+            object SYNC_FIRST_IDENTITY : Step("Syncing our identity with the current lender.")
             object SIGN_TRANSACTION : Step("Signing transaction.")
             object SYNC_SECOND_IDENTITY : Step("Syncing our identity with the other counterparty.") {
                 override fun childProgressTracker() = IdentitySyncFlow.Send.tracker()

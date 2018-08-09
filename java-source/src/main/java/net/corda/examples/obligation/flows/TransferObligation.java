@@ -177,16 +177,32 @@ public class TransferObligation {
             this.otherFlow = otherFlow;
         }
 
+        private final Step SYNC_FIRST_IDENTITY = new Step("Syncing our identity with the current lender.");
+        private final Step SIGN_TRANSACTION = new Step("Signing transaction.");
+        private final Step SYNC_SECOND_IDENTITY = new Step("Syncing our identity with the other counterparty.") {
+            @Override
+            public ProgressTracker childProgressTracker() {
+                return FinalityFlow.Companion.tracker();
+            }
+        };
+
+        private final ProgressTracker progressTracker = new ProgressTracker(SYNC_FIRST_IDENTITY, SIGN_TRANSACTION, SYNC_SECOND_IDENTITY);
+
         @Suspendable
         @Override
         public SignedTransaction call() throws FlowException {
-            // Stage 1. Receive the payload from current lender and have borrower and new lender
-            // sync each other's identity.
+            // Stage 1. Sync identities with the current lender.
+            progressTracker.setCurrentStep(SYNC_FIRST_IDENTITY);
             subFlow(new IdentitySyncFlow.Receive(otherFlow));
+
+            // Stage 2. Sign the transaction.
+            progressTracker.setCurrentStep(SIGN_TRANSACTION);
             SignedTransaction stx = subFlow(new SignTxFlowNoChecking(otherFlow, SignTransactionFlow.Companion.tracker()));
 
+            // Stage 3. Sync identities with the other counterparty.
+            progressTracker.setCurrentStep(SYNC_SECOND_IDENTITY);
             Party otherParty = otherFlow.receive(Party.class).unwrap(data -> data);
-            subFlow(new IdentitySyncFlowWrapper.Initiator(otherParty, stx.getTx()));
+            subFlow(new IdentitySyncFlowWrapper.Initiator(otherParty, stx.getTx(), SYNC_SECOND_IDENTITY.childProgressTracker()));
 
             return waitForLedgerCommit(stx.getId());
         }
