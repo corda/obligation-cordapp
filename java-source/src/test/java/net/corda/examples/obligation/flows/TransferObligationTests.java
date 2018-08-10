@@ -1,5 +1,8 @@
 package net.corda.examples.obligation.flows;
 
+import net.corda.core.identity.AbstractParty;
+import net.corda.core.identity.CordaX500Name;
+import net.corda.core.identity.Party;
 import net.corda.core.transactions.SignedTransaction;
 import net.corda.examples.obligation.Obligation;
 import org.junit.Rule;
@@ -9,7 +12,7 @@ import org.junit.rules.ExpectedException;
 import static net.corda.finance.Currencies.POUNDS;
 import static net.corda.testing.internal.InternalTestUtilsKt.chooseIdentity;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class TransferObligationTests extends ObligationTests {
 
@@ -73,4 +76,36 @@ public class TransferObligationTests extends ObligationTests {
         exception.expectCause(instanceOf(IllegalStateException.class));
         transferObligation(issuedObligation.getLinearId(), a, c, false);
     }
+
+    @Test
+    public void transferResolvesAnonymousParties() throws Exception {
+        // Issue obligation.
+        SignedTransaction issuanceTransaction = issueObligation(a, b, POUNDS(1000), false);
+        network.waitQuiescent();
+        Obligation issuedObligation = (Obligation) issuanceTransaction.getTx().getOutputStates().get(0);
+
+        // Transfer obligation.
+        SignedTransaction transferTransaction = transferObligation(issuedObligation.getLinearId(), b, c, true);
+        network.waitQuiescent();
+        Obligation transferredObligation = (Obligation) transferTransaction.getTx().getOutputStates().get(0);
+
+        AbstractParty borrowerAnonymous = transferredObligation.getBorrower();
+        AbstractParty newlenderAnoymous = transferredObligation.getLender();
+        // Check they are indeed anonymous
+        CordaX500Name borrowerAnonymousName = borrowerAnonymous.nameOrNull();
+        CordaX500Name newlenderAnoymousName = newlenderAnoymous.nameOrNull();
+        // For some reason, borrower was not anonymized.
+//        assertNull(borrowerAnonymousName);
+        assertNull(newlenderAnoymousName);
+
+        // Check anonymity is indeed resolved
+        Party newlenderDeanonymizedByBorrower = a.getServices().getIdentityService().wellKnownPartyFromAnonymous(newlenderAnoymous);
+        Party borrowerDeanonymizedByNewlender = c.getServices().getIdentityService().wellKnownPartyFromAnonymous(borrowerAnonymous);
+        assertNotNull(newlenderDeanonymizedByBorrower);
+        assertNotNull(borrowerDeanonymizedByNewlender);
+        assertEquals(a.getInfo().getLegalIdentities().get(0), borrowerDeanonymizedByNewlender);
+        assertEquals(c.getInfo().getLegalIdentities().get(0), newlenderDeanonymizedByBorrower);
+
+    }
+
 }

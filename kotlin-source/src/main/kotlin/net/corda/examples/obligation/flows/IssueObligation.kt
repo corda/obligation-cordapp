@@ -29,6 +29,7 @@ object IssueObligation {
             object COLLECTING : Step("Collecting counterparty signature.") {
                 override fun childProgressTracker() = CollectSignaturesFlow.tracker()
             }
+
             object FINALISING : Step("Finalising transaction.") {
                 override fun childProgressTracker() = FinalityFlow.tracker()
             }
