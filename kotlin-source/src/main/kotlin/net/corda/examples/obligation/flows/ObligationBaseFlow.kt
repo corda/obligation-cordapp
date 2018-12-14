@@ -40,7 +40,7 @@ abstract class ObligationBaseFlow : FlowLogic<SignedTransaction>() {
 }
 
 internal class SignTxFlowNoChecking(otherFlow: FlowSession) : SignTransactionFlow(otherFlow) {
-    override fun checkTransaction(tx: SignedTransaction) {
+    override fun checkTransaction(stx: SignedTransaction) {
         // TODO: Add checking here.
     }
 }

@@ -83,7 +83,8 @@ public class TransferObligation {
             final Party borrower = getBorrowerIdentity(inputObligation);
 
             // We call `toSet` in case the borrower and the new lender are the same party.
-            Set<FlowSession> sessions = ImmutableSet.of(initiateFlow(borrower), initiateFlow(newLender));
+            FlowSession newLenderSession = initiateFlow(newLender);
+            Set<FlowSession> sessions = ImmutableSet.of(initiateFlow(borrower), newLenderSession);
 
             // Stage 2. This flow can only be initiated by the current lender. Abort if the borrower started this flow.
             progressTracker.setCurrentStep(CHECK_INITIATOR);
@@ -93,7 +94,7 @@ public class TransferObligation {
 
             // Stage 3. Create the new obligation state reflecting a new lender.
             progressTracker.setCurrentStep(BUILD_TRANSACTION);
-            final Obligation transferredObligation = createOutputObligation(inputObligation);
+            final Obligation transferredObligation = createOutputObligation(inputObligation, newLenderSession);
 
             // Stage 4. Create the transfer command.
             final List<PublicKey> signerKeys = new ImmutableList.Builder<PublicKey>()
@@ -133,7 +134,7 @@ public class TransferObligation {
 
             // Stage 10. Notarise and record the transaction in our vaults.
             progressTracker.setCurrentStep(FINALISE);
-            return subFlow(new FinalityFlow(stx));
+            return subFlow(new FinalityFlow(stx, sessions, FINALISE.childProgressTracker()));
         }
 
         @Suspendable
@@ -146,14 +147,10 @@ public class TransferObligation {
         }
 
         @Suspendable
-        private Obligation createOutputObligation(Obligation inputObligation) throws FlowException {
+        private Obligation createOutputObligation(Obligation inputObligation, FlowSession newLenderSession) throws FlowException {
             if (anonymous) {
-                final HashMap<Party, AnonymousParty> txKeys = subFlow(new SwapIdentitiesFlow(newLender));
-                if (!txKeys.containsKey(newLender)) {
-                    throw new FlowException("Couldn't get lender's conf. identity.");
-                }
-                final AnonymousParty anonymousLender = txKeys.get(newLender);
-                return inputObligation.withNewLender(anonymousLender);
+                final SwapIdentitiesFlow.AnonymousResult anonymousIdentitiesResult = subFlow(new SwapIdentitiesFlow(newLenderSession));
+                return inputObligation.withNewLender(anonymousIdentitiesResult.getTheirIdentity());
             } else {
                 return inputObligation.withNewLender(newLender);
             }
@@ -204,7 +201,7 @@ public class TransferObligation {
             Party otherParty = otherFlow.receive(Party.class).unwrap(data -> data);
             subFlow(new IdentitySyncFlowWrapper.Initiator(otherParty, stx.getTx(), SYNC_SECOND_IDENTITY.childProgressTracker()));
 
-            return waitForLedgerCommit(stx.getId());
+            return subFlow(new ReceiveFinalityFlow(otherFlow, stx.getId()));
         }
     }
 }
