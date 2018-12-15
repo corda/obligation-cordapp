@@ -84,7 +84,8 @@ public class TransferObligation {
 
             // We call `toSet` in case the borrower and the new lender are the same party.
             FlowSession newLenderSession = initiateFlow(newLender);
-            Set<FlowSession> sessions = ImmutableSet.of(initiateFlow(borrower), newLenderSession);
+            FlowSession borrowerFlowSession = initiateFlow(borrower);
+            Set<FlowSession> sessions = ImmutableSet.of(borrowerFlowSession, newLenderSession);
 
             // Stage 2. This flow can only be initiated by the current lender. Abort if the borrower started this flow.
             progressTracker.setCurrentStep(CHECK_INITIATOR);
@@ -93,7 +94,10 @@ public class TransferObligation {
             }
 
             // Stage 3. Create the new obligation state reflecting a new lender.
+            // This step has to interact with the new lender to exchange identities if we are using anonymous identities.
             progressTracker.setCurrentStep(BUILD_TRANSACTION);
+            borrowerFlowSession.send(false); // we don't need to swap identities with the borrower as we'd already have it.
+            newLenderSession.send(anonymous);
             final Obligation transferredObligation = createOutputObligation(inputObligation, newLenderSession);
 
             // Stage 4. Create the transfer command.
@@ -188,15 +192,21 @@ public class TransferObligation {
         @Suspendable
         @Override
         public SignedTransaction call() throws FlowException {
-            // Stage 1. Sync identities with the current lender.
+            // Stage 1. Swap anonymouse identities if needed.
+            final boolean exchangeIdentities = otherFlow.receive(Boolean.class).unwrap(data -> data);
+            if (exchangeIdentities) {
+                subFlow(new SwapIdentitiesFlow(otherFlow));
+            }
+
+            // Stage 2. Sync identities with the current lender.
             progressTracker.setCurrentStep(SYNC_FIRST_IDENTITY);
             subFlow(new IdentitySyncFlow.Receive(otherFlow));
 
-            // Stage 2. Sign the transaction.
+            // Stage 3. Sign the transaction.
             progressTracker.setCurrentStep(SIGN_TRANSACTION);
             SignedTransaction stx = subFlow(new SignTxFlowNoChecking(otherFlow, SignTransactionFlow.Companion.tracker()));
 
-            // Stage 3. Sync identities with the other counterparty.
+            // Stage 4. Sync identities with the other counterparty.
             progressTracker.setCurrentStep(SYNC_SECOND_IDENTITY);
             Party otherParty = otherFlow.receive(Party.class).unwrap(data -> data);
             subFlow(new IdentitySyncFlowWrapper.Initiator(otherParty, stx.getTx(), SYNC_SECOND_IDENTITY.childProgressTracker()));

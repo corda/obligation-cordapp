@@ -65,6 +65,7 @@ public class IssueObligation {
             // Step 1. Initialisation.
             progressTracker.setCurrentStep(INITIALISING);
             final FlowSession lenderFlow = initiateFlow(lender);
+            lenderFlow.send(anonymous);
             final Obligation obligation = createObligation(lenderFlow);
             final PublicKey ourSigningKey = obligation.getBorrower().getOwningKey();
 
@@ -118,6 +119,10 @@ public class IssueObligation {
         @Suspendable
         @Override
         public SignedTransaction call() throws FlowException {
+            final boolean anonymous = otherFlow.receive(Boolean.class).unwrap(data -> data);
+            if (anonymous) {
+                subFlow(new SwapIdentitiesFlow(otherFlow, SwapIdentitiesFlow.tracker()));
+            }
             final SignedTransaction stx = subFlow(new SignTxFlowNoChecking(otherFlow, SignTransactionFlow.Companion.tracker()));
             return subFlow(new ReceiveFinalityFlow(otherFlow, stx.getId()));
         }

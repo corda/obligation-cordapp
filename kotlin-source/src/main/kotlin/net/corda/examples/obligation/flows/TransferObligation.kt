@@ -64,7 +64,7 @@ object TransferObligation {
             progressTracker.currentStep = CHECK_INITIATOR
             check(ourIdentity == getLenderIdentity(inputObligation)) { "Obligation transfer can only be initiated by the lender." }
 
-            // Stage 3. Create the new obligation state reflecting a new lender
+            // Stage 3. Create the new obligation state reflecting a new lender.
             // This step has to interact with the new lender to exchange identities if we are using anonymous identities.
             progressTracker.currentStep = BUILD_TRANSACTION
             borrowerFlowSession.send(false) // we don't need to swap identities with the borrower as we'd already have it.
@@ -153,20 +153,21 @@ object TransferObligation {
 
         @Suspendable
         override fun call(): SignedTransaction {
+            // Stage 1. Swap anonymouse identities if needed.
             val exchangeIdentities = otherFlow.receive<Boolean>().unwrap { it }
             if (exchangeIdentities) {
                 subFlow(SwapIdentitiesFlow(otherFlow))
             }
 
-            // Stage 1. Sync identities with the current lender.
+            // Stage 2. Sync identities with the current lender.
             progressTracker.currentStep = SYNC_FIRST_IDENTITY
             subFlow(IdentitySyncFlow.Receive(otherFlow))
 
-            // Stage 2. Sign the transaction.
+            // Stage 3. Sign the transaction.
             progressTracker.currentStep = SIGN_TRANSACTION
             val stx = subFlow(SignTxFlowNoChecking(otherFlow))
 
-            // Stage 3. Sync identities with the other counterparty.
+            // Stage 4. Sync identities with the other counterparty.
             progressTracker.currentStep = SYNC_SECOND_IDENTITY
             val otherParty = otherFlow.receive<Party>().unwrap { it }
 
